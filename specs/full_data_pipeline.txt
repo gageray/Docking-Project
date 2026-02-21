@@ -1,0 +1,251 @@
+Here is the full, integrated document rewritten from top to bottom.
+
+# Data Pipeline Plan -- Code File Specs for Agent
+
+## Current State of Raw Inputs
+
+You have flat data directories. No `raw` or `prepared` subfolders. Differentiate by filename.
+receptors/
+reference.cif
+6X3X.cif
+9CSB.cif
+ligands/
+smiles.txt
+
+GNINA requires: receptors as PDB, ligands as SDF.
+CIF files must be converted to PDB before any receptor prep.
+
+---
+
+## FILE 0: config.json
+
+This is the compartmentalized single source of truth. No hardcoded constants in the Python scripts.
+
+```json
+{
+  "ligand_prep": {
+    "output_dir": "ligands",
+    "ligands": {
+      "diazepam": {
+        "smiles": "CN1C(=O)CN=C(C2=C1C=CC(=C2)Cl)C3=CC=CC=C3",
+        "mode": "single"
+      },
+      "flumazenil": {
+        "smiles": "CCOC(=O)C1=C2CN(C(=O)C3=C(N2C=N1)C=CC(=C3)F)C",
+        "mode": "single"
+      },
+      "ferulic_acid": {
+        "smiles": "COC1=C(C=CC(=C1)/C=C/C(=O)O)O",
+        "mode": "single"
+      },
+      "docosanyl_ferulate": {
+        "smiles": "CCCCCCCCCCCCCCCCCCCCCCOC(=O)/C=C/C1=CC(=C(C=C1)O)OC",
+        "mode": "grid_search"
+      }
+    }
+  },
+  "receptor_prep": [
+    {
+      "input": "receptors/6X3U.cif",
+      "output": "receptors/6X3U_prepped.pdb",
+      "keep_chains": ["A", "B", "C", "D", "E"]
+    },
+    {
+      "input": "receptors/9CRS.cif",
+      "output": "receptors/9CRS_prepped.pdb",
+      "keep_chains": ["A", "B", "C", "D", "E"]
+    },
+    {
+      "input": "receptors/9CSB.cif",
+      "output": "receptors/9CSB_prepped.pdb",
+      "keep_chains": ["A", "B", "C", "D", "E"]
+    }
+  ],
+  "box_definition": {
+    "reference_box": {
+      "raw_cif": "receptors/6X3U.cif",
+      "ligand_resname": "FYP",
+      "prepped_pdb": "receptors/6X3U_prepped.pdb",
+      "pocket_chains": ["D", "E"]
+    },
+    "targets": [
+      {
+        "name": "9CRS_alpha1",
+        "prepped_pdb": "receptors/9CRS_prepped.pdb",
+        "pocket_chains": ["D", "E"]
+      },
+      {
+        "name": "9CSB_alpha2",
+        "prepped_pdb": "receptors/9CSB_prepped.pdb",
+        "pocket_chains": ["D", "E"]
+      }
+    ],
+    "output_file": "box_params.json"
+  }
+}
+
+```
+
+## Files to Produce (in order)
+
+1. `ligand_prep.py`
+2. `receptor_prep.py`
+3. `box_definition.py`
+
+All scripts read their specific block from `config.json`. All validation halts (`STOP`) are replaced with `stdout` logging. Scripts must continue execution on failure of a single item in an array or loop.
+
+---
+
+## FILE 1: ligand_prep.py
+
+### Purpose
+
+Generate SDF files from SMILES defined in `config.json`. Protonation assigned by Dimorphite-DL at pH 7.4. Complex ligands with the `grid_search` flag undergo a deterministic dihedral sweep with a locked extended tail.
+
+### Dependencies
+
+```python
+from rdkit import Chem
+from rdkit.Chem import AllChem
+from dimorphite_dl import DimorphiteDL
+import itertools, json
+
+```
+
+### Step 0: Protonation
+
+Load `config.json` (`ligand_prep` block). Pass all SMILES through `DimorphiteDL(min_ph=7.4, max_ph=7.4, pka_precision=0.0)`. Log changes to stdout. Do not halt execution on unexpected charges.
+
+### Processing Logic
+
+#### Pathway A: `mode: "single"`
+
+1. `mol = Chem.MolFromSmiles(protonated_smiles)`
+2. `mol = Chem.AddHs(mol)`
+3. `AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())`
+4. `AllChem.MMFFOptimizeMolecule(mol, maxIters=2000)`
+5. Export to `OUTPUT_DIR/<name>.sdf`
+
+#### Pathway B: `mode: "grid_search"` (Docosanyl Ferulate)
+
+1. **Initial Build:** Generate a single 3D conformer (`ETKDGv3`).
+2. **Dynamic Tail Identification:**
+* Match the ester linkage using SMARTS: `C(=O)O[CH2]`
+* Walk the molecular graph from the `[CH2]` oxygen outward to identify the terminal sp3 C-C bonds of the alkane chain.
+* Force all identified tail dihedrals to 180° (all-*trans*).
+
+
+3. **Define Sweeps (The Linkage Pivot):**
+* `C=C-C=O` (sp2-sp2): [0°, 180°]
+* `O-CH2` (sp3-sp3): [0°, 60°, 120°, 180°, 240°, 300°]
+* `CH2-CH2` (sp3-sp3): [0°, 60°, 120°, 180°, 240°, 300°]
+
+
+4. **Combinatorial Generation:** Use `itertools.product` to generate the 72 dihedral combinations. Duplicate the base molecule 72 times, applying one set of angles to each.
+5. **Constrained Minimization:**
+* Apply fixed-atom constraints to the dynamically identified tail carbons to keep the tail rigidly straight.
+* Run `MMFFOptimizeMolecule` on all 72 states to relax the headgroup and linkage clashes.
+
+
+6. **Filter & Export:**
+* Log and drop any conformers that fail to converge.
+* Log and drop any conformers with energy > 20 kcal/mol above the global minimum of the set.
+* Export surviving conformers to `OUTPUT_DIR/<name>_conf<N>.sdf`.
+
+
+
+---
+
+## FILE 2: receptor_prep.py
+
+### Purpose
+
+Generic CIF-to-PDB cleanup. Iterates over the `receptor_prep` array in `config.json`. Extracts specified chains, adds missing atoms/hydrogens at pH 7.4.
+
+### Dependencies
+
+```python
+from pdbfixer import PDBFixer
+from openmm.app import PDBFile
+from Bio.PDB import MMCIFParser, PDBIO
+import json
+
+```
+
+### Logic (Loops over config array)
+
+1. Load CIF via Biopython `MMCIFParser`.
+2. Delete all chains not explicitly listed in `keep_chains`.
+3. Save intermediate PDB to memory or temp file.
+4. Run `PDBFixer`:
+* `findMissingResidues()`, `findNonstandardResidues()`, `replaceNonstandardResidues()`
+* `findMissingAtoms()`, `addMissingAtoms()`
+* `addMissingHydrogens(pH=7.4)`
+* `removeHeterogens(keepWater=False)`
+
+
+5. Write final PDB to the `output` path. Log output atom and chain counts to stdout. Continue loop on errors.
+
+---
+
+## FILE 3: box_definition.py
+
+### Purpose
+
+Calculates binding box centroids by aligning target structures to a reference structure using sequence-aware CA superimposition.
+
+### Dependencies
+
+```python
+from Bio.PDB import MMCIFParser, PDBParser, Superimposer
+from Bio import Align
+import numpy as np
+import json
+
+```
+
+### Logic
+
+1. **Reference Centroid:** Parse `raw_cif` from `reference_box` using `MMCIFParser`. Calculate the geometric center of the specified `ligand_resname` atoms. Log centroid.
+2. **Alignment Loop:** Iterate through the `targets` array in `config.json`:
+* Load the prepared target PDB and the prepared reference PDB.
+* Extract the sequences of the specified `pocket_chains` for both.
+
+
+3. **Sequence-Aware CA Extraction:**
+```python
+aligner = Align.PairwiseAligner()
+alignment = aligner.align(ref_seq, target_seq)[0]
+
+ref_cas = []
+target_cas = []
+for ref_block, target_block in zip(alignment.aligned[0], alignment.aligned[1]):
+    for i, j in zip(range(ref_block[0], ref_block[1]), range(target_block[0], target_block[1])):
+        if "CA" in ref_res[i] and "CA" in target_res[j]:
+            ref_cas.append(ref_res[i]["CA"].get_coord())
+            target_cas.append(target_res[j]["CA"].get_coord())
+
+```
+
+
+4. **Superimposition:**
+* Pass `ref_cas` and `target_cas` to `Bio.PDB.Superimposer()`.
+* Log the RMSD. (Do NOT halt if > 3.0, just log the warning).
+
+
+5. **Transform:**
+* Apply the inverse translation/rotation matrix to the reference centroid to map it into the target space.
+* Log target centroid.
+
+
+6. **Export:** Write all calculated box centers and dimensions to `output_file` (`box_params.json`).
+
+---
+
+## Execution Order
+
+1. Run `python ligand_prep.py`
+2. Run `python receptor_prep.py`
+3. Run `python box_definition.py`
+
+Should I feed this directly into the file writer now?
