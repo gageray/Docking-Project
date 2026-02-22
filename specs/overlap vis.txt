@@ -1,0 +1,54 @@
+Understood. If the conformations are already generated, we skip the RDKit embedding and focus strictly on the Superposition and Visualization Logic.
+
+The coding agent needs to execute a Rigid Body Least-Squares Fit using only the Ferulic Acid (FA) atoms as the reference set. This will lock the "head" and reveal the "sweep" of the C22 tail.
+Technical Specification: Ensemble Alignment & Sweep Visualization
+
+Objective: Align a pre-existing multi-conformer SDF/PDB of Docosanyl Ferulate (DF) to a fixed Ferulic Acid core to visualize the C22 tail’s conformational search space.
+1. Input Requirements
+
+    Source File: df_generated_confs.sdf (The existing 72+ conformers).
+
+    Reference SMILES/SMARTS: COC1=C(O)C=CC(/C=C/C(=O)O)=C1 (The Ferulic Acid anchor).
+
+2. Operational Logic (The "Anchor-and-Sweep" Protocol)
+
+The agent must:
+
+    Load the Ensemble: Load the existing conformers into a single molecule object with multiple states.
+
+    Map the Pharmacophore: Perform a substructure match to identify the atom indices of the FA core. These indices must be identical across all conformers.
+
+    Coordinate Alignment:
+
+        Set Conformer 0 as the stationary reference.
+
+        Iterate through Conformers 1–N.
+
+        Calculate the transformation matrix (rotation/translation) based only on the FA core atom coordinates.
+
+        Apply that transformation to the entire molecule (including the C22 tail).
+
+    Verification: Calculate the RMSD of the FA core post-alignment. It must be effectively zero ( < 0.001 Å).
+
+3. Output Generation
+
+    Primary Output: df_aligned_sweep.sdf. A multi-model file where the FA heads are perfectly overlapped.
+
+    Metadata: A CSV file containing the Centroid Distance of the C22 terminal carbon (the omega carbon) from the FA core for each conformer to quantify the "reach" of the sweep.
+
+4. PyMOL Rendering Script (Final Pass)
+
+The agent should provide this snippet to be run in your local PyMOL/ChimeraX environment for the actual visual:
+Python
+
+# To be executed in PyMOL after loading df_aligned_sweep.sdf
+cmd.set("all_states", 1)
+cmd.hide("everything")
+cmd.show("sticks", "df_aligned_sweep")
+# Color by section to highlight the sweep
+cmd.color("atomic", "df_aligned_sweep")
+cmd.select("tail", "not (resn FA_CORE_ATOMS)") # Adjust selection based on atom indices
+cmd.color("gray50", "tail")
+cmd.set("stick_transparency", 0.7, "tail")
+
+Lead Investigator Note: This allows us to see if the generated search space actually samples the "extended" configurations required to bypass the α1 Loop C or if the conformer generator biased the tail into "collapsed" (folded) states that would never reach the α2 sub-pockets. Proceed with this spec.
