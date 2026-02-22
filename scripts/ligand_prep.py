@@ -148,6 +148,9 @@ def process_grid_search(name, smiles, outdir):
     results = []
     
     for idx, (a1, a2, a3) in enumerate(combinations):
+        if (idx+1) % 5 == 0 or idx == 0:
+            logger.info(f"[{name}] Starting generation and MMFF minimization for conformer {idx+1}/{len(combinations)}...")
+            
         # Create a new conformer for each combination
         new_mol = Chem.Mol(mol)
         new_conf = new_mol.GetConformer()
@@ -182,15 +185,67 @@ def process_grid_search(name, smiles, outdir):
     results.sort(key=lambda x: x[0])
     global_min = results[0][0]
     
-    valid_results = [res for res in results if res[0] <= global_min + 20.0]
+    # Filter out conformers way above global minimum
+    energy_filtered = [res for res in results if res[0] <= global_min + 20.0]
     
-    for i, (energy, conf_mol, orig_idx) in enumerate(valid_results):
+    # Prune thermodynamic duplicates using Dihedral Angles (Tolerance: 2.0 degrees)
+    unique_results = []
+    
+    import math
+    from rdkit.Chem import rdMolTransforms
+
+    def get_dihedral(conf, atom_indices):
+        i, j, k, l = atom_indices
+        return rdMolTransforms.GetDihedralDeg(conf, i, j, k, l)
+        
+    def angle_diff(a, b):
+        diff = abs(a - b) % 360.0
+        return min(diff, 360.0 - diff)
+        
+    logger.info(f"[{name}] Starting thermodynamic duplicate pruning (2.0° threshold) on {len(energy_filtered)} candidates...")
+    
+    for prune_idx, res in enumerate(energy_filtered):
+        if (prune_idx+1) % 10 == 0 or prune_idx == 0:
+            logger.info(f"[{name}] Evaluating dihedrals for candidate {prune_idx+1}/{len(energy_filtered)}...")
+            
+        energy, conf_mol, orig_idx = res
+        cand_conf = conf_mol.GetConformer()
+        
+        # Calculate the 3 pivot dihedrals for the candidate
+        a1 = get_dihedral(cand_conf, (c_beta, c_alpha, c_carbonyl, o_ester))
+        a2 = get_dihedral(cand_conf, (c_carbonyl, o_ester, c_alkyl1, c_alkyl2))
+        
+        a3 = 0.0
+        if c_alkyl3 is not None:
+             a3 = get_dihedral(cand_conf, (o_ester, c_alkyl1, c_alkyl2, c_alkyl3))
+             
+        # Compare against accepted unique states
+        is_unique = True
+        for u_energy, u_mol, u_orig_idx in unique_results:
+            u_conf = u_mol.GetConformer()
+            u_a1 = get_dihedral(u_conf, (c_beta, c_alpha, c_carbonyl, o_ester))
+            u_a2 = get_dihedral(u_conf, (c_carbonyl, o_ester, c_alkyl1, c_alkyl2))
+            
+            u_a3 = 0.0
+            if c_alkyl3 is not None:
+                u_a3 = get_dihedral(u_conf, (o_ester, c_alkyl1, c_alkyl2, c_alkyl3))
+                
+            # If all 3 angles are within 2.0 degrees, it's the exact same state
+            if angle_diff(a1, u_a1) <= 2.0 and angle_diff(a2, u_a2) <= 2.0 and angle_diff(a3, u_a3) <= 2.0:
+                is_unique = False
+                break
+                
+        if is_unique:
+            unique_results.append(res)
+            
+    logger.info(f"[{name}] Writing {len(unique_results)} perfectly unique thermodynamic states to disk...")
+    for i, (energy, conf_mol, orig_idx) in enumerate(unique_results):
         outpath = os.path.join(outdir, f"{name}_conf{i+1}.sdf")
         writer = Chem.SDWriter(outpath)
         writer.write(conf_mol)
         writer.close()
         
-    logger.info(f"[{name}] Exported {len(valid_results)} conformers (dropped {len(combinations) - len(valid_results)}).")
+    logger.info(f"[{name}] Exported {len(unique_results)} unique conformers (dropped {len(combinations) - len(energy_filtered)} high-energy, pruned {len(energy_filtered) - len(unique_results)} duplicates).")
 
 def main():
     try:
