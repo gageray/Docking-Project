@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.agent/
+memory-bank/
+*.egg-info/
+
+# Ignore data as it contains large files not needed for clone
+data/
+box_params.json

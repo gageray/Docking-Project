@@ -1,0 +1,88 @@
+{
+    "ligand_prep": {
+        "output_dir": "data/ligands",
+        "ligands": {
+            "diazepam": {
+                "smiles": "CN1C(=O)CN=C(C2=C1C=CC(=C2)Cl)C3=CC=CC=C3",
+                "mode": "single"
+            },
+            "flumazenil": {
+                "smiles": "CCOC(=O)C1=C2CN(C(=O)C3=C(N2C=N1)C=CC(=C3)F)C",
+                "mode": "single"
+            },
+            "ferulic_acid": {
+                "smiles": "COC1=C(C=CC(=C1)/C=C/C(=O)O)O",
+                "mode": "single"
+            },
+            "docosanyl_ferulate": {
+                "smiles": "CCCCCCCCCCCCCCCCCCCCCCOC(=O)/C=C/C1=CC(=C(C=C1)O)OC",
+                "mode": "grid_search"
+            }
+        }
+    },
+    "receptor_prep": [
+        {
+            "input": "data/receptors/6X3U.cif",
+            "output": "data/receptors/6X3U_prepped.pdb",
+            "keep_chains": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ]
+        },
+        {
+            "input": "data/receptors/9CRS.cif",
+            "output": "data/receptors/9CRS_prepped.pdb",
+            "keep_chains": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ]
+        },
+        {
+            "input": "data/receptors/9CSB.cif",
+            "output": "data/receptors/9CSB_prepped.pdb",
+            "keep_chains": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+            ]
+        }
+    ],
+    "box_definition": {
+        "reference_box": {
+            "raw_cif": "data/receptors/6X3U.cif",
+            "ligand_resname": "FYP",
+            "prepped_pdb": "data/receptors/6X3U_prepped.pdb",
+            "pocket_chains": [
+                "D",
+                "E"
+            ]
+        },
+        "targets": [
+            {
+                "name": "9CRS_alpha1",
+                "prepped_pdb": "data/receptors/9CRS_prepped.pdb",
+                "pocket_chains": [
+                    "D",
+                    "E"
+                ]
+            },
+            {
+                "name": "9CSB_alpha2",
+                "prepped_pdb": "data/receptors/9CSB_prepped.pdb",
+                "pocket_chains": [
+                    "D",
+                    "E"
+                ]
+            }
+        ],
+        "output_file": "box_params.json"
+    }
+}

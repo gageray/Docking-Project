@@ -1,0 +1,4 @@
+rdkit-pypi
+dimorphite-dl
+biopython
+numpy

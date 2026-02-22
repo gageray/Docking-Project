@@ -1,0 +1,124 @@
+I'll review the project files systematically. Let me start by examining the full codebase structure and any additional files.I've reviewed all the files in detail. Here's a comprehensive code review organized by severity.
+
+---
+
+## Critical Issues
+
+### 1. `box_definition.py` — Superimposer argument order is inverted
+
+This is the most consequential bug in the project. The spec says to map the reference centroid into target space, meaning the reference is the "moving" set and the target is the "fixed" set. The code gets this right conceptually (the comment on line ~100 explains the intent correctly), but `Superimposer.set_atoms(fixed, moving)` expects **Atom objects**, and the code passes them:
+
+```python
+super_imposer.set_atoms(target_aligned_cas, ref_aligned_cas)
+```
+
+This is actually correct for the stated goal — target is fixed, ref is moving, and then `rotran` is applied to `ref_centroid`. So the transform direction is consistent. **However**, the spec (FILE 3, step 5) says *"Apply the inverse translation/rotation matrix to the reference centroid to map it into the target space"*, implying the spec author expected the superimposer to be set with ref as fixed and target as moving, then an *inverse* applied. The code skips the inverse and instead swaps the argument order, which is mathematically equivalent. This is fine, but the divergence from spec language should be documented with a comment explaining *why* it's equivalent, since a future maintainer reading both could "fix" it into a real bug.
+
+### 2. `ligand_prep.py` — SMARTS match indexing is fragile and likely wrong
+
+The SMARTS pattern and its destructured match are the highest-risk section:
+
+```python
+patt = Chem.MolFromSmarts('C=CC(=O)OC')
+match = mol.GetSubstructMatch(patt)
+c_beta, c_alpha, c_carbonyl, o_carbonyl, o_ester, c_alkyl1 = match[:6]
+```
+
+The SMARTS `C=CC(=O)OC` encodes 6 heavy atoms, but the atom ordering returned by `GetSubstructMatch` follows the SMARTS atom sequence, which is: `C₁=C₂C₃(=O₄)O₅C₆`. That makes the destructuring:
+
+| Variable | Assigned atom | Actual SMARTS position |
+|---|---|---|
+| `c_beta` | index 0 | C₁ (vinyl carbon) ✓ |
+| `c_alpha` | index 1 | C₂ (vinyl carbon) ✓ |
+| `c_carbonyl` | index 2 | C₃ (carbonyl carbon) ✓ |
+| `o_carbonyl` | index 3 | O₄ (carbonyl oxygen) ✓ |
+| `o_ester` | index 4 | O₅ (ester oxygen) ✓ |
+| `c_alkyl1` | index 5 | C₆ (first chain carbon) ✓ |
+
+The mapping looks correct on paper, but the problem is that RDKit SMARTS matching on a kekulized molecule with explicit hydrogens can return multiple valid matches, and `GetSubstructMatch` returns only the *first*. For docosanyl ferulate, where the aromatic ring also contains `C=C` bonds, the pattern could match the wrong fragment entirely. You should either:
+
+- Use `GetSubstructMatches` (plural) and validate which match is on the ester linkage, or
+- Use a more specific SMARTS like `[CX3H1]=[CX3H1]C(=O)[OX2][CH2]` that anchors to the vinyl hydrogens and the sp3 methylene, ruling out aromatic matches.
+
+### 3. `ligand_prep.py` — `identify_tail_atoms` receives wrong tuple
+
+```python
+tail_carbons = identify_tail_atoms(mol, (c_carbonyl, o_carbonyl, o_ester, c_alkyl1))
+```
+
+Inside `identify_tail_atoms`, `ester_match[3]` is used as `c_alpha_idx` and `ester_match[2]` as `o_ester_idx`. But in this tuple, index 3 is `c_alkyl1` and index 2 is `o_ester`. So `c_alpha_idx` is actually the first alkyl carbon, and the DFS walks from there — which is the intended behavior. The variable *name* `c_alpha_idx` inside the function is misleading (it's not the alpha carbon of the vinyl system, it's the first carbon of the alkyl tail). Not a runtime bug, but a naming trap for future maintenance.
+
+---
+
+## Moderate Issues
+
+### 4. `config.json` vs `full_data_pipeline.txt` — Path prefix mismatch
+
+The spec defines paths without a `data/` prefix:
+```
+"input": "receptors/6X3U.cif"
+```
+
+But `config.json` uses:
+```
+"input": "data/receptors/6X3U.cif"
+```
+
+Similarly, the ligand `output_dir` is `"ligands"` in the spec but `"data/ligands"` in config. This is fine if intentional (the spec was a design doc, and `data/` was the chosen layout), but the discrepancy should be reconciled in the README so nobody runs from the wrong working directory.
+
+### 5. `receptor_prep.py` — Missing import guard will crash at runtime
+
+The `PDBFixer` and `PDBFile` imports are inside a try/except that prints a warning but doesn't prevent `process_receptor` from being called. If openmm/pdbfixer aren't installed, the script will crash with a `NameError` on the `PDBFixer(filename=...)` call deep inside the function, producing a confusing traceback. Either gate the `main()` execution behind an availability check or re-raise with a clear message.
+
+### 6. `box_definition.py` — CA atom objects vs. coordinate arrays
+
+`extract_sequence_and_cas` returns actual BioPython `Atom` objects in the `cas` list, which is what `Superimposer.set_atoms` needs. This is correct. But later code does `ref_aligned_cas.append(ref_cas[i])` which indexes into this list by alignment position — this only works if the list is gap-free and 1:1 with the sequence string. Since the function skips residues that fail `three_to_one` (non-standard residues), the indexing between `seq` and `cas` stays synchronized. This is correct but **fragile**: if someone later adds a case where a residue is included in `seq` but its CA is missing, the indices silently desync. Consider returning a list of `(one_letter_code, atom)` tuples instead.
+
+### 7. `ligand_prep.py` — Constraint logic doesn't lock the tail
+
+The code adds *position* constraints to tail carbons:
+```python
+ff.MMFFAddPositionConstraint(tail_carbons[count], 0.0, 1.0e5)
+```
+
+A position constraint with `maxDispl=0.0` and a very large force constant pins atoms to their current coordinates. But the tail dihedrals were set on the *original* `mol`, and then the code copies with `new_mol = Chem.Mol(mol)` and sets new dihedrals on `new_conf`. The position constraints are then applied to the *new* coordinates, so this does lock the tail in its swept position. This is correct, but note that `maxDispl=0.0` technically means "no displacement allowed" — some MMFF implementations may interpret this as "no constraint." A small but nonzero value like `0.05` would be safer.
+
+---
+
+## Minor Issues & Style
+
+### 8. No `__init__.py` or module structure
+The scripts are standalone, which is fine for a pipeline, but there's significant code duplication (`load_config` is defined identically in all three scripts). Consider extracting it into a shared `utils.py`.
+
+### 9. `vis_box.py` — Selection logic bug
+```python
+cmd.select("native_ligand", "reference_crystal and resn DZP or resn FYP")
+```
+Due to PyMOL selection operator precedence, this selects `(reference_crystal AND resn DZP) OR (resn FYP)` — meaning *all* FYP residues in *any* loaded object. Should be:
+```python
+cmd.select("native_ligand", "reference_crystal and (resn DZP or resn FYP)")
+```
+
+### 10. `vis_results.py` — Hardcoded residue number
+`resi 102` for His102 assumes a specific numbering scheme that may not survive PDBFixer's renumbering. This should either be verified post-prep or parameterized in config.
+
+### 11. `requirements.txt` is incomplete
+`numpy` is imported by `box_definition.py` but while it's listed in requirements.txt, `json`, `os`, `sys`, `itertools`, `math`, `tempfile`, `glob`, `colorsys` are all stdlib — that's fine. But `dimorphite-dl` has a hyphen in the pip name, which is correct. Just noting that the commented-out packages make the file slightly confusing for automated CI — consider a separate `environment.yml` for the conda dependencies.
+
+### 12. No logging framework
+Every script uses bare `print()`. For a pipeline that will be run in batch on Kaggle T4s, switching to Python's `logging` module would allow level-based filtering and timestamps at near-zero effort.
+
+### 13. `ligand_prep.py` — Energy filter uses raw MMFF energy
+The 20 kcal/mol cutoff is applied to raw MMFF energies, which is fine as a relative filter within a single compound. Just be aware that MMFF energies are not directly comparable across different molecules if this is ever generalized.
+
+---
+
+## Summary
+
+| Severity | Count | Key items |
+|---|---|---|
+| Critical | 3 | SMARTS matching fragility, tail atom naming, superimposer direction documentation |
+| Moderate | 4 | Path mismatches, import guard, CA indexing fragility, constraint edge case |
+| Minor | 6 | PyMOL selection precedence, hardcoded resi, duplicated utils, no logging |
+
+The pipeline architecture is solid — config-driven, spec-faithful, and the scripts handle errors gracefully with continue-on-failure semantics. The most urgent fix is the SMARTS pattern in `ligand_prep.py` (issue #2), since a wrong substructure match would silently produce garbage conformers. The PyMOL selection precedence bug (#9) is a quick one-liner. Everything else is hardening and maintainability.

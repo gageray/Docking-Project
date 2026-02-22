@@ -1,0 +1,14 @@
+name: docking
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - openmm
+  - pdbfixer
+  - pymol-open-source
+  - rdkit
+  - biopython
+  - numpy
+  - pip
+  - pip:
+    - dimorphite-dl

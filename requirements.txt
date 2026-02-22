@@ -1,0 +1,10 @@
+rdkit
+dimorphite-dl
+biopython
+numpy
+# Note: openmm, pdbfixer, and pymol are best installed via conda. 
+# Attempting to pip install them might fail depending on your OS.
+# See README.md for installation instructions.
+# openmm
+# pdbfixer
+# pymol-open-source

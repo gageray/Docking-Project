@@ -1,0 +1,41 @@
+### Visualization Plan
+
+Use PyMOL or ChimeraX for all steps.
+
+**Stage 1: Ligand Conformer Validation**
+
+* **When:** After running `ligand_prep.py`.
+* **Targets:** `ligands/docosanyl_ferulate_conf*.sdf`
+* **Actions:**
+1. Load all docosanyl ferulate macro-state SDFs into a single session.
+2. Align them by the ferulic acid heavy atoms.
+
+
+* **Success Criteria:** The 22-carbon tails must project outward at geometrically distinct angles. No tail should fold back toward the head group or curl into a ball.
+
+**Stage 2: Receptor Alignment and Box Centroid**
+
+* **When:** After running `box_definition.py`.
+* **Targets:** `receptors/6X3X_prepped.pdb`, `receptors/9CSB_prepped.pdb`, `receptors/reference.cif`, and `box_params.json`.
+* **Actions:**
+1. Load both prepped PDBs.
+2. Create a pseudoatom at the `[x, y, z]` coordinates specified in `box_params.json` for each target.
+* *PyMOL Command:* `pseudoatom box_center, pos=[x, y, z]`
+
+
+3. Load the raw `reference.cif` and isolate the co-crystallized DZP ligand.
+
+
+* **Success Criteria:** The pseudoatoms must sit exactly in the BZD binding pocket (the interface between the alpha and gamma chains) for both 6X3X and 9CSB. The 6X3X pseudoatom should overlap the native DZP coordinates.
+
+**Stage 3: Post-Docking Pose Analysis**
+
+* **When:** After executing GNINA on the Kaggle T4.
+* **Targets:** Top-scoring GNINA output SDFs and the corresponding prepped receptor PDB.
+* **Actions:**
+1. Load the receptor and the top docked poses.
+2. Display receptor surface and highlight key interface residues (e.g., alpha1-His102).
+3. Measure distances between the ester carbonyl oxygen of the ligand and potential hydrogen bond donors in the pocket.
+
+
+* **Success Criteria:** The ferulic acid headgroup must sit deep in the pocket. The C22 tail must project out of the pocket into solvent/membrane space without severe steric clashes with the receptor surface.
