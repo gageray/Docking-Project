@@ -7,7 +7,7 @@ def main():
     pymol.pymol_argv = ['pymol', '-c', '-q']
     pymol.finish_launching()
 
-    data_dir = os.path.join(os.path.dirname(__file__), "..", "data", "ligands")
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "ligands")
     sdf_path = os.path.join(data_dir, "docosanyl_ferulate_conf1.sdf")
     out_png = os.path.join(data_dir, "df_single_molecule.png")
     

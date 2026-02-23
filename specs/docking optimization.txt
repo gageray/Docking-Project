@@ -1,0 +1,75 @@
+This document serves as the **Operational Optimization Protocol** for the coding agent. It transitions the project from a "blind" stochastic search to an **Anchored Local Search**, ensuring the C22 tail explores the  subunit interface rather than wasting cycles in the solvent or internal pore.
+
+# Protocol: Anchored-Ensemble Docking & Subunit Interface Mapping
+
+**Target:** Docosanyl Ferulate (DF) | **Receptors:** 6X3U (), 8G4X ()
+
+---
+
+## 1. Receptor Pre-Processing (The "Antibody Excision")
+
+To clear the search space for the 28 Å C22 tail, the agent must sanitize the "dirty" 8G4X data.
+
+* **Task:** Remove all chains except the GABA-A pentamer (typically 2$\alpha$, 2$\beta$, 1$\gamma$).
+* **Explicit Removal:** Delete Chains **H** and **L** (Fab antibody fragments).
+* **Refinement:** Use `PDBFixer` to add missing heavy atoms and hydrogens at pH 7.4.
+* **Centroid Extraction:** Save the coordinates of the native ligand (Alprazolam) as `site_center.pdb` before deleting it from the receptor.
+
+## 2. Geometric Constraints (The "Hemisphere" Logic)
+
+To prevent the C22 tail from "flipping" into non-physiological space, we implement a **Directional Bias**.
+
+### A. The Interface Vector ()
+
+The agent must calculate the "Normal" of the binding pocket to define the valid "Sweep" zone:
+
+1. Identify the center of the **Pore** () by averaging the  coordinates of the M2 helices.
+2. Identify the **BZD Site Center** () from the native ligand.
+3. The **Outward Vector** () = .
+4. **Validation:** The C22 tail should ideally reside in the plane perpendicular to  that follows the groove between the  and  subunits.
+
+### B. Anchored Initialization
+
+Do not allow GNINA to randomly place the 18 conformers.
+
+* **Pre-Alignment:** Align the Ferulic Acid (FA) core of all 18 conformers to the native ligand coordinates in `site_center.pdb`.
+* **Constraint:** Use `--local_only` or a positional restraint (force constant) on the FA head atoms. This forces the engine to spend 100% of its exhaustiveness on the **tail's degrees of freedom**.
+
+## 3. Docking Execution (The "Expanse" Box)
+
+Even with an anchored head, the box must be large enough to contain the tail's full range of motion.
+
+* **Box Center:** .
+* **Box Dimensions:**  Å (to ensure the 28 Å tail never hits a grid boundary).
+* **GNINA Arguments:**
+* `--autobox_ligand site_center.pdb`
+* `--autobox_add 25` (to expand the search to the subunit interface).
+* `--exhaustiveness 32` (Required for the  volume).
+* `--min_rmsd_filter 1.0` (to ensure diversity in the resulting poses).
+
+
+
+## 4. Post-Docking Selectivity Filters
+
+The coding agent must parse the output SDF using the following logic:
+
+1. **Head Integrity:** Discard any pose where the FA core RMSD > 2.0 Å from the starting anchor (indicates the head "popped out").
+2. **Interface Occupancy:** Calculate the fraction of the C22 tail atoms that are within 5 Å of the ** or  protein surface**.
+* *High Occupancy:* Successful binding in the subunit groove.
+* *Low Occupancy:* Tail is flopping in the solvent (likely low affinity).
+
+
+3. **Score Delta:** - Extract `CNNscore` and `CNNaffinity`.
+* Result = .
+
+
+
+## 5. Control Validation (The "Hard Stop")
+
+The agent **must** perform a control redock of Diazepam into 6X3U before processing DF.
+
+* **Failure Condition:** If Diazepam Redock RMSD  Å, the agent must stop, re-check the `PDBFixer` output, and re-center the box. We do not dock the complex ligand on a broken control.
+
+---
+
+**Computational Lead Note:** By anchoring the head and using a  Å box with high exhaustiveness, we are simulating the "Sweep" within the actual energetic landscape of the receptor interface. This is the only way to prove the C22 chain's role in  selectivity.

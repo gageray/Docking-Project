@@ -1,6 +1,8 @@
 import json
 import os
 import sys
+# Add parent directory to path to import utils
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 from Bio.PDB import MMCIFParser, PDBParser, Superimposer

@@ -1,0 +1,8 @@
+the recetpors need to be aligned if there is no ligand.
+infact, there should probably be a single ligand selected as the absolute one.  the anti benzo one
+the rotation script will need to be sent the recetpor, its metadata, and the metadata for the ligand receptor
+take args 3 and pdb and 2 json
+parse the json so you get the position and use that.... just any for them so order doesnt matter?  it can tell whats what after.  just verify pdb and one json for ligand ones and pdb and 2 json for the non ligand ones
+just check json for the first one of the args to have not null for bzd site location
+use that for the same math you do to rotate the ligand receptor.
+that should produce the same result.

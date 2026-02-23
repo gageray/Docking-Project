@@ -16,7 +16,7 @@ def get_centroid(conf, atom_indices):
     return Point3D(*centroid)
 
 def main():
-    data_dir = os.path.join(os.path.dirname(__file__), "..", "data", "ligands")
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "ligands")
     out_sdf = os.path.join(data_dir, "df_aligned_sweep.sdf")
     out_csv = os.path.join(data_dir, "df_sweep_reach.csv")
     

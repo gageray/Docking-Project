@@ -7,7 +7,7 @@ def main():
     pymol.pymol_argv = ['pymol', '-c', '-q']
     pymol.finish_launching()
 
-    data_dir = os.path.join(os.path.dirname(__file__), "..", "data", "ligands")
+    data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data", "ligands")
     sdf_path = os.path.join(data_dir, "df_aligned_sweep.sdf")
     out_png = os.path.join(data_dir, "df_sweep_visualization.png")
     

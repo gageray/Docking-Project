@@ -1,0 +1,20 @@
+# Receptor Spatial Normalization Specification
+
+## Coordinate System
+* **Origin (0,0,0):** BZD pocket centroid (defined by reference ligand, e.g., Flumazenil).
+* **Z-axis (Vertical):** Transmembrane pore (longest principal axis of inertia). Extracellular domain points to +Z.
+* **Y-axis (Depth):** Receptor center-of-mass (COM) is positioned on the +Y axis. The BZD pocket faces the -Y axis (standard camera viewport).
+* **X-axis (Lateral):** Transverse plane across the protein interface.
+
+## Pipeline Logic: Holo Receptor (Reference/Anchor)
+1. **Origin Definition:** Calculate the geometric centroid of the target ligand. Translate the entire complex to map this centroid precisely to (0,0,0).
+2. **Pore Alignment (Z-axis):** Extract raw atomic coordinates. Calculate the covariance matrix and extract the principal eigenvector (longest axis of inertia). Compute the 4x4 rotation matrix to align this eigenvector to the global Z-axis [0, 0, 1] and apply it via `cmd.transform_selection()`.
+3. **Z-Correction (Up/Down):** Calculate the Z-coordinate of the receptor COM. The BZD pocket (origin) is in the extracellular domain, so the bulk receptor mass must sit below it. If COM Z > 0, apply a 180-degree rotation around the X-axis.
+4. **Y-Correction (Azimuthal):** Project the receptor COM onto the XY plane. Calculate the angular offset and rotate the complex around the Z-axis until the receptor COM lies exactly on the +Y axis. This forces the pocket to face the -Y direction.
+5. **Metadata:** Calculate and store the final receptor COM as `receptor_center_offset` in the JSON metadata. The Gnina docking center is permanently 0,0,0.
+
+## Pipeline Logic: Apo Receptor (Target)
+1. **Reference Anchor:** Load a previously standardized Holo structure (e.g., Flumazenil-bound receptor) which already possesses the standardized global coordinate space.
+2. **Superposition:** Use `cmd.super()` to align the Apo receptor to the Reference receptor. This performs a sequence-independent backbone alignment, ensuring alpha/gamma pairing.
+3. **Coordinate Inheritance:** The Apo receptor is physically snapped into the standardized model space, placing its empty BZD pocket exactly at (0,0,0) and inheriting the Z-axis pore alignment.
+4. **Metadata:** Calculate and store the newly aligned Apo receptor's COM as `receptor_center_offset`.

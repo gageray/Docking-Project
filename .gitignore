@@ -1,9 +1,45 @@
+# Python
 __pycache__/
 *.pyc
-.agent/
-memory-bank/
+*.pyo
+*.pyd
 *.egg-info/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Ignore data as it contains large files not needed for clone
+# Project specific
 data/
 box_params.json
+
+# Agent/Memory (uncomment if you want to track these)
+.agent/
+memory-bank/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# PyMOL
+*.pse
+
+# Output files (uncomment if you don't want to track these)
+# *.png
+# *.pdb
+# *.sdf
