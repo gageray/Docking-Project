@@ -1,0 +1,183 @@
+Comparative Docking Study: Ferulic Acid vs Docosanyl Ferulate at α1 and α2 GABA-A BZD Sites
+
+Structures: 6X3U (α1β2γ2 + diazepam) · 8G4X (α2-containing assembly)
+Docking engine: GNINA (GPU-accelerated, CNN scoring)
+Persistent storage: Google Drive via OAuth
+Step 1 — Google Drive Auth
+
+OAuth credentials must be uploaded as a Kaggle dataset. The credentials.json file lives at /kaggle/input/<dataset-name>/credentials.json.
+Update CREDS_PATH below if your dataset name differs.
+import os, io
+from pathlib import Path
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+
+# -- Service account auth -------------------------------------------------
+CREDS_PATH = "/kaggle/input/datasets/ineptrobot/service-account-key/service-account-key.json"
+SCOPES = ["https://www.googleapis.com/auth/drive"]
+
+creds = service_account.Credentials.from_service_account_file(CREDS_PATH, scopes=SCOPES)
+drive_service = build("drive", "v3", credentials=creds)
+
+# -- Drive folder IDs (hardcoded) -----------------------------------------
+DRIVE_ROOT       = "1NQ_5DucfsWMBRnZM6fSN82isem9Ha72R"  # docking/
+DRIVE_RECEPTORS  = "1H3zFxbwk_GsTu65vmw8ZIsC6ykQRsNFI"  # docking/receptors/
+DRIVE_LIGANDS    = "1Y-9eDS9PgArkAllh3VrApTebqdWYLATH"  # docking/ligands/
+DRIVE_OUTPUTS    = "1_NG8tk4Cz5bhQXvMctHhIDUIWUzChsUn"  # docking/outputs/
+DRIVE_VALIDATION = "1m9YVLgDzjX8DCCB-Zojej_inIxHd9vEJ"  # docking/validation/
+
+# -- Verify all folders are accessible ------------------------------------
+for name, fid in [("root", DRIVE_ROOT), ("receptors", DRIVE_RECEPTORS),
+                  ("ligands", DRIVE_LIGANDS), ("outputs", DRIVE_OUTPUTS),
+                  ("validation", DRIVE_VALIDATION)]:
+    try:
+        f = drive_service.files().get(fileId=fid, fields="name").execute()
+        print(f"  OK  {name:12s} -> {f['name']}")
+    except Exception as e:
+        print(f"  FAIL {name:12s} -> {e}")
+# ── DRIVE HELPER FUNCTIONS ──────────────────────────────────────────
+def upload_to_drive(local_path, folder_id=None):
+    """Upload a local file to Drive. Overwrites if same name exists in folder."""
+    name = os.path.basename(local_path)
+    # Check for existing
+    q = f"name='{name}' and trashed=false"
+    if folder_id:
+        q += f" and '{folder_id}' in parents"
+    existing = drive_service.files().list(q=q, fields='files(id)').execute().get('files', [])
+
+    media = MediaFileUpload(local_path)
+    if existing:
+        updated = drive_service.files().update(
+            fileId=existing[0]['id'], media_body=media
+        ).execute()
+        print(f"  ↑ updated {name} ({updated['id']})")
+        return updated['id']
+    else:
+        meta = {'name': name}
+        if folder_id:
+            meta['parents'] = [folder_id]
+        created = drive_service.files().create(
+            body=meta, media_body=media, fields='id'
+        ).execute()
+        print(f"  ↑ created {name} ({created['id']})")
+        return created['id']
+
+
+def download_from_drive(file_id, local_path):
+    """Download a Drive file by ID to a local path."""
+    request = drive_service.files().get_media(fileId=file_id)
+    with open(local_path, "wb") as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+    print(f"  ↓ {local_path}")
+
+
+def list_drive_folder(folder_id):
+    """List files in a Drive folder."""
+    results = drive_service.files().list(
+        q=f"'{folder_id}' in parents and trashed=false",
+        fields='files(id,name,mimeType,size)'
+    ).execute()
+    for f in results.get('files', []):
+        print(f"  {f['name']:40s}  {f.get('size','folder'):>10s}  {f['id']}")
+    return results.get('files', [])
+Step 2 — Installs & Verification
+# ── APT ──────────────────────────────────────────────────────────────
+!echo "--- apt ---"
+!apt-get update -qq 2>&1 | grep -v "^W:" && apt-get install -y -qq openbabel libopenbabel-dev
+
+# ── PIP ──────────────────────────────────────────────────────────────
+!echo "--- pip ---"
+!pip install --break-system-packages \
+    pdbfixer openmm \
+    biopython mdanalysis openbabel-wheel \
+
+!pip install --break-system-packages rdkit
+
+# ── GNINA BINARY ────────────────────────────────────────────────────
+!echo "--- GNINA ---"
+!if [ ! -f /usr/local/bin/gnina ]; then wget --progress=bar https://github.com/gnina/gnina/releases/download/v1.1/gnina -O /usr/local/bin/gnina && chmod +x /usr/local/bin/gnina && echo "GNINA downloaded"; else echo "GNINA already present"; fi
+# ── VERIFICATION ────────────────────────────────────────────────────
+import subprocess, importlib
+
+# GPU
+print("=== GPU ===")
+!nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+
+# GNINA
+print("\n=== GNINA ===")
+!gnina --version 2>&1 | head -2
+
+# Python packages
+print("\n=== Python packages ===")
+for pkg in ["rdkit", "openmm", "pdbfixer", "Bio", "openbabel",
+            "MDAnalysis", "numpy", "pandas", "googleapiclient"]:
+    try:
+        m = importlib.import_module(pkg)
+        ver = getattr(m, "__version__", "ok")
+        print(f"  ✓ {pkg:20s} {ver}")
+    except ImportError as e:
+        print(f"  ✗ {pkg:20s} MISSING — {e}")
+Step 3 — Directory Setup
+from pathlib import Path
+
+BASE = Path("/kaggle/working/docking")
+DIRS = {
+    "receptors":  BASE / "receptors",
+    "ligands":    BASE / "ligands",
+    "outputs":    BASE / "outputs",
+    "validation": BASE / "validation",
+}
+for name, p in DIRS.items():
+    p.mkdir(parents=True, exist_ok=True)
+    print(f"  ✓ {p}")
+
+print("\nLocal tree:")
+!find /kaggle/working/docking -type d | sort
+Step 4 — X
+
+X
+import subprocess
+import concurrent.futures
+import os
+import queue
+
+def test_hardware_isolation(gpu_id):
+    env = {**os.environ, "CUDA_VISIBLE_DEVICES": str(gpu_id)}
+    
+    # Query the CUDA runtime via PyTorch, which respects the env var
+    py_cmd = "import torch; print(f'Visible GPUs: {torch.cuda.device_count()}')"
+    
+    gpu_check = subprocess.run(
+        ["python", "-c", py_cmd], 
+        env=env, capture_output=True, text=True
+    ).stdout.strip()
+    
+    cpu_count = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
+    
+    return f"Worker assigned GPU {gpu_id} -> {gpu_check} | System vCPUs: {cpu_count}"
+
+# Standard thread-safe queue
+gpu_queue = queue.Queue()
+for i in [0, 1]: 
+    gpu_queue.put(i)
+
+def worker(_):
+    gpu_id = gpu_queue.get()
+    try:
+        return test_hardware_isolation(gpu_id)
+    finally:
+        gpu_queue.put(gpu_id)
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    results = list(executor.map(worker, range(2)))
+
+for r in results:
+    print(r)
+
+Worker assigned GPU 0 -> Visible GPUs: 1 | System vCPUs: 4
+Worker assigned GPU 1 -> Visible GPUs: 1 | System vCPUs: 4
+

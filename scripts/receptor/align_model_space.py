@@ -34,15 +34,16 @@ def standardize_geometry(obj):
     
     # 2. Z-Flip (Ensure receptor bulk is mostly below the pocket-origin)
     z_center = np.mean(cmd.get_coords(obj), axis=0)[2]
-    if z_center > 0: cmd.rotate("x", 180, obj)
-    
+    if z_center > 0:
+        cmd.rotate("x", 180, obj, camera=0, origin=[0, 0, 0])
+
     # 3. X-Alignment (Rotate so Receptor COM is on -X axis)
     # This means the pocket (origin) is effectively facing +X
     com = np.mean(cmd.get_coords(obj), axis=0)
     angle = math.atan2(com[1], com[0])
     # Target angle for COM is 180 degrees (pi)
     rot_angle = math.pi - angle
-    cmd.rotate("z", math.degrees(rot_angle), obj)
+    cmd.rotate("z", math.degrees(rot_angle), obj, camera=0, origin=[0, 0, 0])
     
     # Return the new COM offset
     final_com = np.mean(cmd.get_coords(obj), axis=0)
@@ -78,10 +79,41 @@ def main():
     elif args.ref_pdb:
         # Case B: Apo - Snap to Reference
         cmd.load(args.ref_pdb, "ref")
-        # Align target to reference. Since ref has pocket at 0,0,0, target now does too.
+        
+        # 1. Global Pre-Alignment
         cmd.super("target", "ref")
+        
+        # 2. Alpha/Gamma Radial Interface Alignment
+        cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
+        ref_sel = "ref and byres (ref within 10 of pocket_center)"
+        
+        bzd_chains = [c for c, desc in meta.get("chains", {}).items() if "_bzd" in desc]
+        if bzd_chains:
+            bzd_sel = " or ".join([f"chain {c}" for c in bzd_chains])
+            target_sel = f"target and ({bzd_sel}) and byres (target within 10 of pocket_center)"
+        else:
+            target_sel = "target and byres (target within 10 of pocket_center)"
+            
+        # Execute targeted superposition
+        cmd.super(target_sel, ref_sel)
+        
+        # 3. Calculate COM offset
         com_offset = np.mean(cmd.get_coords("target"), axis=0).tolist()
         meta["receptor_center_offset"] = com_offset
+        
+        # 4. Copy Reference Ligand as Chain Z for consistent visual rendering 
+        cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
+        cmd.select("ref_ligand", "ref and organic and byres (ref within 5 of pocket_center)")
+        if cmd.count_atoms("ref_ligand") > 0:
+            cmd.create("lig_copy", "ref_ligand")
+            cmd.alter("lig_copy", "chain='Z'")
+            cmd.create("target", "target or lig_copy")
+            
+            # Update metadata to reflect the injected ligand
+            lig_atoms = cmd.get_model("lig_copy").atom
+            if lig_atoms:
+                meta["target_ligand_resn"] = lig_atoms[0].resn
+                meta["target_ligand_chain"] = "Z"
     else:
         # Fallback: Just Z-align if no reference or ligand
         standardize_geometry("target")
@@ -89,19 +121,13 @@ def main():
 
     # Save Output PDB
     cmd.save(args.out_pdb, "target")
-    
-    # Update Metadata
-    if "target_ligand_center" in meta: del meta["target_ligand_center"]
+
+    # Update Metadata with COM offset
+    if "target_ligand_center" in meta:
+        del meta["target_ligand_center"]
     with open(args.out_json, 'w') as f:
         json.dump(meta, f, indent=4)
-        
-    # Full Receptor Visualization
-    cmd.hide("all")
-    cmd.show("cartoon", "target")
-    cmd.view() 
-    cmd.turn('y', 90) # Side view of pore
-    cmd.png(args.out_pdb.replace(".pdb", ".png"), width=1200, height=1200, ray=1)
-    
+
     cmd.quit()
 
 if __name__ == "__main__":

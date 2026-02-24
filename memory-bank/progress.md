@@ -8,6 +8,7 @@
 - [x] Implemented `receptor_prep.py` with CIF→PDB conversion
 - [x] Implemented `box_definition.py` with sequence-aware alignment
 - [x] Implemented `align_model_space.py` for geometry standardization
+- [x] Improved apo receptor alignment with 10A radial constraint around BZD pocket
 
 ## Visualization Suite
 - [x] Parsed `specs/visualization.txt`

@@ -1,0 +1,59 @@
+# Receptor Spatial Normalization Specification: Apo Target Alignment Supplement
+
+## 1. Rationale for Targeted Alignment
+
+Using the whole receptor for alignment (`cmd.super("target", "ref")`) averages the RMSD across the entire pentamer. Conformational shifts in the transmembrane domains or non-BZP subunits mathematically pull the BZD pocket out of perfect alignment. To optimize the apo alignment, superposition must be restricted strictly to the BZD interface.
+
+## 2. Pipeline Logic: Apo Receptor (Target)
+
+**1. Reference Anchor**
+Load a previously standardized Holo structure (e.g., Flumazenil-bound receptor) which already possesses the standardized global coordinate space.
+
+**2. Global Pre-Alignment**
+Use `cmd.super()` to align the Apo receptor to the Reference receptor. This performs an initial sequence-independent backbone alignment and brings the target pocket near the `0,0,0` origin so spatial operators can function correctly.
+
+**3. Alpha/Gamma Radial Interface Alignment (Recommended)**
+Align only the chains that form the BZD interface to prioritize pocket geometry over the rest of the receptor, preserving the alpha/gamma pairing. Force PyMOL to superimpose strictly the residues within a 10Å radius of the standardized origin.
+
+```python
+# Create a pseudoatom at the standardized pocket center
+cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
+
+# Define the 10Å radius constraint on the reference
+ref_sel = "ref and byres (ref within 10 of pocket_center)"
+
+# Extract BZP chains from metadata and apply spatial constraint
+bzp_chains = [c for c, desc in meta.get("chains", {}).items() if "_bzp" in desc]
+if bzp_chains:
+    bzp_sel = " or ".join([f"chain {c}" for c in bzp_chains])
+    target_sel = f"target and ({bzp_sel}) and byres (target within 10 of pocket_center)"
+else:
+    target_sel = "target and byres (target within 10 of pocket_center)"
+
+# Execute targeted superposition
+cmd.super(target_sel, ref_sel)
+
+```
+
+**4. Key Residue Alignment (Alternative/Supplemental Method)**
+Using a key conserved residue (e.g., the canonical -His101 or -Phe77) as an anchor ensures specific hydrogen-bonding or pi-stacking geometry is perfectly superimposed.
+
+* **Via `super`:** Restricts alignment if sequence numbering aligns between target and reference.
+```python
+cmd.super(f"{tgt_bzp_sel} and resi 101", "ref and resi 101")
+
+```
+
+
+* **Via `pair_fit`:** Enforces exact coordinate matching of backbone atoms (requires exact 1:1 atom mapping).
+```python
+cmd.pair_fit(f"target and chain A and resi 101 and name CA", f"ref and chain A and resi 101 and name CA")
+
+```
+
+
+
+*Note on usage:* Relying entirely on a single residue can skew the surrounding pocket if the apo state loop has flexed. Method 3 is optimal as the 10Å radial constraint naturally incorporates the spatial positioning of key residues without overfitting to a single alpha carbon.
+
+**5. Coordinate Inheritance & Metadata**
+The Apo receptor is physically snapped into the standardized model space, placing its empty BZD pocket exactly at (0,0,0) and inheriting the Z-axis pore alignment. Calculate and store the newly aligned Apo receptor's COM as `receptor_center_offset`.

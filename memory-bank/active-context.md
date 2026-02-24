@@ -27,7 +27,7 @@
    - Aligns pore along Z-axis via PCA
    - Centers binding pocket at (0,0,0)
    - Orients receptor COM on -X axis
-   - Handles holo (with ligand) and apo (with reference) modes
+   - Handles holo mode (global PCA+translation) and apo mode (10A radial alignment against reference BZD chains)
 
 4. **Box Definition** (`scripts/receptor/box_definition.py`)
    - Sequence-aware CA superimposition

@@ -25,15 +25,15 @@ def process_receptor(cif_path, meta_path, out_dir):
     receptor_sel = "(" + " or ".join(chain_strs) + ")"
     
     if target_lig_resn and target_lig_chain_out:
-        # 1. Identify BZP chains to compute center
-        bzp_chains = [c for c, desc in meta.get("chains", {}).items() if "_bzp" in desc]
-        if not bzp_chains:
-            print("Warning: No _bzp chains found in metadata, cannot compute center.")
+        # 1. Identify BZD chains to compute center
+        bzd_chains = [c for c, desc in meta.get("chains", {}).items() if "_bzd" in desc]
+        if not bzd_chains:
+            print("Warning: No _bzd chains found in metadata, cannot compute center.")
             cmd.delete("all")
             return
-            
-        bzp_sel = " or ".join([f"chain {c}" for c in bzp_chains])
-        bzp_com = cmd.centerofmass(bzp_sel)
+
+        bzd_sel = " or ".join([f"chain {c}" for c in bzd_chains])
+        bzd_com = cmd.centerofmass(bzd_sel)
         
         # 2. Find closest ligand to the compute center
         model = cmd.get_model(f"resn {target_lig_resn}")
@@ -45,7 +45,7 @@ def process_receptor(cif_path, meta_path, out_dir):
         for ch, resi in ligands:
             lig_sel = f"(chain {ch} and resi {resi} and resn {target_lig_resn})"
             lig_com = cmd.centerofmass(lig_sel)
-            dist = math.dist(bzp_com, lig_com)
+            dist = math.dist(bzd_com, lig_com)
             if dist < min_dist:
                 min_dist = dist
                 closest_lig_sel = lig_sel
@@ -55,7 +55,7 @@ def process_receptor(cif_path, meta_path, out_dir):
             cmd.delete("all")
             return
             
-        print(f"Identified closest BZP ligand: {closest_lig_sel} at distance {min_dist:.2f}")
+        print(f"Identified closest BZD ligand: {closest_lig_sel} at distance {min_dist:.2f}")
         
         # 3. Alter its chain to Z (or whatever target_ligand_chain is)
         cmd.alter(closest_lig_sel, f"chain='{target_lig_chain_out}'")
