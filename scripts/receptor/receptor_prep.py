@@ -87,7 +87,7 @@ def main():
     
     receptors = [
         ("6X3U.cif", "6x3u_metadata.json"),
-        ("6X3X (legacy diazepam).cif", "6x3x_metadata.json"),
+        ("6X3X.cif", "6x3x_metadata.json"),
         ("9CRS.cif", "9crs_metadata.json"),
         ("9CSB.cif", "9csb_metadata.json")
     ]

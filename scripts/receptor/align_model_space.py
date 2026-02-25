@@ -1,6 +1,7 @@
 import argparse
 import json
 import math
+import os
 import numpy as np
 import pymol
 from pymol import cmd
@@ -51,80 +52,156 @@ def standardize_geometry(obj):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdb", required=True)
-    parser.add_argument("--json", required=True)
-    parser.add_argument("--out_pdb", required=True)
-    parser.add_argument("--out_json", required=True)
-    parser.add_argument("--ref_pdb", help="Standardized Flumazenil PDB (Pocket at 0,0,0)")
+    parser.add_argument("--pdb", required=True, help="Input receptor PDB")
+    parser.add_argument("--json", required=True, help="Input metadata JSON")
+    parser.add_argument("--out_pdb", required=True, help="Output aligned receptor PDB")
+    parser.add_argument("--out_json", required=True, help="Output metadata JSON")
+    parser.add_argument("--ref_pdb", help="Reference receptor PDB to align to")
+    parser.add_argument("--ref_json", help="Reference metadata JSON")
+    parser.add_argument("--master_receptor", help="Name of master reference receptor (e.g., '6X3U')")
     args = parser.parse_args()
 
     pymol.pymol_argv = ['pymol', '-c', '-q']
     pymol.finish_launching()
     cmd.reinitialize()
-    
+
     with open(args.json, 'r') as f:
         meta = json.load(f)
+
+    # Load reference metadata if provided
+    ref_meta = None
+    if args.ref_json and os.path.exists(args.ref_json):
+        with open(args.ref_json, 'r') as f:
+            ref_meta = json.load(f)
     
     cmd.load(args.pdb, "target")
     resn = meta.get("target_ligand_resn")
     chain = meta.get("target_ligand_chain")
     lig_coords = cmd.get_coords(f"target and resn {resn} and chain {chain}") if resn else None
 
-    if lig_coords is not None:
-        # Case A: Holo - Move pocket to 0,0,0 and standardize
+    # Initialize ligands dict in metadata
+    ligands_dict = {}
+    native_ligand_resn = None
+    native_ligand_chain = None
+
+    # Determine which alignment mode
+    if lig_coords is not None and not args.ref_pdb:
+        # Case A: Master Receptor - Independent alignment
         pocket_center = np.mean(lig_coords, axis=0)
         cmd.translate([-pocket_center[0], -pocket_center[1], -pocket_center[2]], "target")
         com_offset = standardize_geometry("target")
         meta["receptor_center_offset"] = com_offset
+
+        # Track native ligand (stays at Z unless ref_ligands provided)
+        native_ligand_resn = resn
+        native_ligand_chain = chain
+
     elif args.ref_pdb:
-        # Case B: Apo - Snap to Reference
+        # Case B/C: Align to Reference (holo or apo)
         cmd.load(args.ref_pdb, "ref")
-        
+
         # 1. Global Pre-Alignment
         cmd.super("target", "ref")
-        
+
         # 2. Alpha/Gamma Radial Interface Alignment
         cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
         ref_sel = "ref and byres (ref within 10 of pocket_center)"
-        
+
         bzd_chains = [c for c, desc in meta.get("chains", {}).items() if "_bzd" in desc]
         if bzd_chains:
             bzd_sel = " or ".join([f"chain {c}" for c in bzd_chains])
             target_sel = f"target and ({bzd_sel}) and byres (target within 10 of pocket_center)"
         else:
             target_sel = "target and byres (target within 10 of pocket_center)"
-            
+
         # Execute targeted superposition
         cmd.super(target_sel, ref_sel)
-        
+
         # 3. Calculate COM offset
         com_offset = np.mean(cmd.get_coords("target"), axis=0).tolist()
         meta["receptor_center_offset"] = com_offset
-        
-        # 4. Copy Reference Ligand as Chain Z for consistent visual rendering 
-        cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
-        cmd.select("ref_ligand", "ref and organic and byres (ref within 5 of pocket_center)")
-        if cmd.count_atoms("ref_ligand") > 0:
-            cmd.create("lig_copy", "ref_ligand")
-            cmd.alter("lig_copy", "chain='Z'")
-            cmd.create("target", "target or lig_copy")
-            
-            # Update metadata to reflect the injected ligand
-            lig_atoms = cmd.get_model("lig_copy").atom
-            if lig_atoms:
-                meta["target_ligand_resn"] = lig_atoms[0].resn
-                meta["target_ligand_chain"] = "Z"
+
+        # Track native ligand if present (will be bumped)
+        if lig_coords is not None:
+            native_ligand_resn = resn
+            native_ligand_chain = chain
+
     else:
         # Fallback: Just Z-align if no reference or ligand
         standardize_geometry("target")
         meta["receptor_center_offset"] = None
 
+    # Copy ligands from reference structure if aligning to reference
+    if args.ref_pdb and cmd.count_atoms("ref") > 0 and ref_meta:
+        # Parse reference metadata to get ligand chains
+        ref_ligands = ref_meta.get("ligands", {})
+
+        if ref_ligands:
+            # If target has native ligand at Z, bump it first
+            if native_ligand_resn and native_ligand_chain == 'Z':
+                cmd.alter(f"target and chain Z and resn {native_ligand_resn}", "chain='Y'")
+                cmd.sort()
+
+                # Record native ligand position
+                native_coords = cmd.get_coords("target and chain Y")
+                if native_coords is not None:
+                    native_com = np.mean(native_coords, axis=0).tolist()
+                    ligands_dict['Y'] = {
+                        "resname": native_ligand_resn,
+                        "source": "native",
+                        "native": True,
+                        "position": native_com
+                    }
+
+            # Copy each ligand from reference based on metadata
+            for chain_id, lig_info in ref_ligands.items():
+                if cmd.count_atoms(f"ref and chain {chain_id}") > 0:
+                    # Copy the chain
+                    cmd.create("lig_copy", f"ref and chain {chain_id}")
+                    cmd.create("target", "target or lig_copy")
+                    cmd.delete("lig_copy")
+
+                    # Record ligand info
+                    lig_coords = cmd.get_coords(f"target and chain {chain_id}")
+                    if lig_coords is not None:
+                        lig_com = np.mean(lig_coords, axis=0).tolist()
+                        ligands_dict[chain_id] = {
+                            "resname": lig_info["resname"],
+                            "source": lig_info.get("source", args.master_receptor),
+                            "native": False,
+                            "position": lig_com
+                        }
+
+    # If this is master receptor (no ref_pdb) and has native ligand, record it
+    if not args.ref_pdb and native_ligand_resn:
+        lig_coords = cmd.get_coords(f"target and chain {native_ligand_chain}")
+        if lig_coords is not None:
+            lig_com = np.mean(lig_coords, axis=0).tolist()
+            ligands_dict[native_ligand_chain] = {
+                "resname": native_ligand_resn,
+                "source": "native",
+                "native": True,
+                "position": lig_com
+            }
+
+    # Update metadata
+    if ligands_dict:
+        meta["ligands"] = ligands_dict
+    if args.master_receptor:
+        meta["alignment_reference"] = args.master_receptor
+
+    # Clean up old keys
+    if "target_ligand_resn" in meta:
+        del meta["target_ligand_resn"]
+    if "target_ligand_chain" in meta:
+        del meta["target_ligand_chain"]
+    if "target_ligand_center" in meta:
+        del meta["target_ligand_center"]
+
     # Save Output PDB
     cmd.save(args.out_pdb, "target")
 
-    # Update Metadata with COM offset
-    if "target_ligand_center" in meta:
-        del meta["target_ligand_center"]
+    # Save updated metadata
     with open(args.out_json, 'w') as f:
         json.dump(meta, f, indent=4)
 
