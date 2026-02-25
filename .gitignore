@@ -10,8 +10,8 @@ __pycache__/
 htmlcov/
 
 # Project specific
-data/
-box_params.json
+#data/
+#box_params.json
 
 # Agent/Memory (uncomment if you want to track these)
 .agent/

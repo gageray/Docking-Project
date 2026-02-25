@@ -1,0 +1,11 @@
+{
+    "target_ligand_resn": null,
+    "target_ligand_chain": null,
+    "chains": {
+        "A": "b3",
+        "B": "a1",
+        "C": "b2",
+        "D": "a2_bzd",
+        "E": "y2_bzd"
+    }
+}

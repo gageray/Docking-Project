@@ -1,0 +1,37 @@
+{
+    "chains": {
+        "A": "b2",
+        "B": "a1",
+        "C": "b2",
+        "D": "a1_bzd",
+        "E": "y2_bzd"
+    },
+    "receptor_center_offset": [
+        -26.71177864074707,
+        -0.4192664921283722,
+        -19.065746307373047
+    ],
+    "ligands": {
+        "Y": {
+            "resname": "DZP",
+            "source": "native",
+            "native": true,
+            "position": [
+                0.17697928845882416,
+                -1.8214191198349,
+                -2.5882647037506104
+            ]
+        },
+        "Z": {
+            "resname": "FYP",
+            "source": "6X3U",
+            "native": false,
+            "position": [
+                -4.5438042434398085e-05,
+                4.540790177998133e-05,
+                9.091063111554831e-05
+            ]
+        }
+    },
+    "alignment_reference": "6X3U"
+}

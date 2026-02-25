@@ -1,0 +1,11 @@
+{
+    "target_ligand_resn": "FYP",
+    "target_ligand_chain": "Z",
+    "chains": {
+        "A": "b2",
+        "B": "a1",
+        "C": "b2",
+        "D": "a1_bzd",
+        "E": "y2_bzd"
+    }
+}
