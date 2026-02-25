@@ -4,6 +4,29 @@ import pymol
 from pymol import cmd
 import math
 
+def detect_key_residues():
+    """
+    Detect key BZD binding site residues in the loaded structure.
+    Returns dict with bzd_his and bzd_phe residue info.
+    """
+    key_res = {}
+
+    # Check for His101 or His102 on chain D (alpha subunit at BZD interface)
+    his_101_exists = cmd.count_atoms("chain D and resi 101 and resn HIS") > 0
+    his_102_exists = cmd.count_atoms("chain D and resi 102 and resn HIS") > 0
+
+    if his_102_exists:
+        key_res["bzd_his"] = {"chain": "D", "resi": "102"}
+    elif his_101_exists:
+        key_res["bzd_his"] = {"chain": "D", "resi": "101"}
+
+    # Check for Phe77 on chain E (gamma subunit at BZD interface)
+    phe_77_exists = cmd.count_atoms("chain E and resi 77 and resn PHE") > 0
+    if phe_77_exists:
+        key_res["bzd_phe"] = {"chain": "E", "resi": "77"}
+
+    return key_res
+
 def process_receptor(cif_path, meta_path, out_dir):
     if not os.path.exists(cif_path) or not os.path.exists(meta_path):
         print(f"Skipping {cif_path} (missing file or metadata).")
@@ -12,6 +35,9 @@ def process_receptor(cif_path, meta_path, out_dir):
     print(f"Processing {cif_path}...")
     with open(meta_path, 'r') as f:
         meta = json.load(f)
+
+    # Detect key residues early so we have structure loaded
+    cmd.reinitialize()
         
     cmd.load(cif_path, "complex")
     
@@ -73,7 +99,17 @@ def process_receptor(cif_path, meta_path, out_dir):
         cmd.remove(f"not {receptor_sel}")
         out_name = os.path.basename(cif_path).split('.')[0]
         out_pdb = os.path.join(out_dir, f"{out_name}_apo.pdb")
-        
+
+    # Detect key residues before saving
+    key_residues = detect_key_residues()
+    if key_residues:
+        meta["key_residues"] = key_residues
+        print(f"Detected key residues: {key_residues}")
+
+        # Save updated metadata with key residues
+        with open(meta_path, 'w') as f:
+            json.dump(meta, f, indent=4)
+
     cmd.save(out_pdb, "complex")
     print(f"Saved {out_pdb}")
     cmd.delete("all")

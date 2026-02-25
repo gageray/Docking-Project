@@ -2,6 +2,7 @@ import argparse
 import sys
 import numpy as np
 import os
+import json
 import pymol
 from pymol import cmd
 
@@ -43,68 +44,81 @@ def get_min_dist(target_file, lig_chain, res_chain, resi):
 if __name__ == "__main__":
     pymol.pymol_argv = ['pymol', '-qc']
     pymol.finish_launching()
-    
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ref", required=True)
+    parser.add_argument("--ref", required=True, help="Reference PDB file (6X3U_aligned.pdb)")
     parser.add_argument("--targets", nargs="+", required=True)
     parser.add_argument("--out", required=True, help="Output file for validation results")
     args = parser.parse_args()
-    
-    # First, calculate baseline distances from the reference structure (args.ref)
-    ref_dist_z_his = get_min_dist(args.ref, "Z", "D", "101")
-    if ref_dist_z_his is None: ref_dist_z_his = get_min_dist(args.ref, "Z", "D", "102")
-    
-    ref_dist_y_his = get_min_dist(args.ref, "Y", "D", "101")
-    if ref_dist_y_his is None: ref_dist_y_his = get_min_dist(args.ref, "Y", "D", "102")
 
-    ref_dist_z_phe = get_min_dist(args.ref, "Z", "E", "77")
-    ref_dist_y_phe = get_min_dist(args.ref, "Y", "E", "77")
-    
+    # Load reference metadata to get baseline distances
+    ref_json = args.ref.replace("_aligned.pdb", "_aligned.json")
+    if not os.path.exists(ref_json):
+        print(f"Error: Reference metadata not found: {ref_json}")
+        sys.exit(1)
+
+    with open(ref_json, 'r') as f:
+        ref_meta = json.load(f)
+
+    # Get reference key residues
+    ref_key_res = ref_meta.get("key_residues", {})
+    ref_his_resi = ref_key_res.get("bzd_his", {}).get("resi", "102")  # Default to His102 for α1
+    ref_phe_resi = ref_key_res.get("bzd_phe", {}).get("resi", "77")
+
+    # Calculate baseline distances from reference FYP (chain Z)
+    ref_dist_z_his = get_min_dist(args.ref, "Z", "D", ref_his_resi)
+    ref_dist_z_phe = get_min_dist(args.ref, "Z", "E", ref_phe_resi)
+
+    if ref_dist_z_his is None or ref_dist_z_phe is None:
+        print(f"Error: Cannot calculate reference distances from {args.ref}")
+        sys.exit(1)
+
     # Store output to file
     with open(args.out, "w") as f:
-        f.write(f"Reference: {os.path.basename(args.ref)}\n")
-        f.write("-" * 115 + "\n")
-        f.write(f"{'Target':<20} | {'Pocket RMSD (CA)':<16} | {'CA Match':<10} | {'Δ FYP(Z)-His102':<18} | {'Δ DZP(Y)-His102':<18}\n")
-        f.write("-" * 115 + "\n")
-        
+        f.write(f"Reference: {os.path.basename(args.ref)} (FYP baseline at chain Z)\n")
+        f.write(f"Baseline distances: FYP-His{ref_his_resi}={ref_dist_z_his:.3f}Å, FYP-Phe{ref_phe_resi}={ref_dist_z_phe:.3f}Å\n")
+        f.write("-" * 140 + "\n")
+        f.write(f"{'Target':<20} | {'Pocket RMSD (CA)':<16} | {'CA Match':<10} | {'Native Lig':<12} | {'Δ FYP-His':<12} | {'Δ DZP-His':<12} | {'Δ FYP-Phe':<12} | {'Δ DZP-Phe':<12}\n")
+        f.write("-" * 140 + "\n")
+
         for target in args.targets:
+            # Load target metadata
+            target_json = target.replace("_aligned.pdb", "_aligned.json")
+            if not os.path.exists(target_json):
+                print(f"Warning: Metadata not found for {target}, skipping")
+                continue
+
+            with open(target_json, 'r') as jf:
+                target_meta = json.load(jf)
+
+            # Find native ligand (if exists)
+            native_resn = "APO"
+            ligands = target_meta.get("ligands", {})
+            for chain, lig_info in ligands.items():
+                if lig_info.get("native", False):
+                    native_resn = lig_info.get("resname", "???")
+                    break
+
+            # Calculate pocket RMSD
             rmsd, n_atoms = calc_rmsd(args.ref, target)
-            
-            # Distance from Ligand Z (FYP) to alpha chain His101/102
-            dist_z_his = get_min_dist(target, "Z", "D", "101")
-            if dist_z_his is None: dist_z_his = get_min_dist(target, "Z", "D", "102") 
-            
-            # Distance from Ligand Y (DZP) to alpha chain His101/102
-            dist_y_his = get_min_dist(target, "Y", "D", "101")
-            if dist_y_his is None: dist_y_his = get_min_dist(target, "Y", "D", "102")
-                
-            dz_str = f"{dist_z_his - ref_dist_z_his:+.3f}" if (dist_z_his is not None and ref_dist_z_his is not None) else "N/A"
-            # If DZP(Y) is present in target, compare its distance against reference FYP(Z) since 6X3U does not have a DZP validation ligand.
-            dy_str = f"{dist_y_his - ref_dist_z_his:+.3f}" if (dist_y_his is not None and ref_dist_z_his is not None) else "N/A"
-            
+
+            # Use REFERENCE residues for all comparisons (to keep baseline consistent)
+            # Distance from all ligands to key residues
+            dist_z_his = get_min_dist(target, "Z", "D", ref_his_resi) if "Z" in ligands else None
+            dist_z_phe = get_min_dist(target, "Z", "E", ref_phe_resi) if "Z" in ligands else None
+
+            dist_y_his = get_min_dist(target, "Y", "D", ref_his_resi) if "Y" in ligands else None
+            dist_y_phe = get_min_dist(target, "Y", "E", ref_phe_resi) if "Y" in ligands else None
+
+            # Calculate deltas from REFERENCE FYP baseline (universal across all receptors)
+            dz_his_str = f"{dist_z_his - ref_dist_z_his:+.3f}" if dist_z_his is not None else "N/A"
+            dy_his_str = f"{dist_y_his - ref_dist_z_his:+.3f}" if dist_y_his is not None else "N/A"
+            dz_phe_str = f"{dist_z_phe - ref_dist_z_phe:+.3f}" if dist_z_phe is not None else "N/A"
+            dy_phe_str = f"{dist_y_phe - ref_dist_z_phe:+.3f}" if dist_y_phe is not None else "N/A"
+
             basename = os.path.basename(target)
-            f.write(f"{basename:<20} | {rmsd:<16.3f} | {int(n_atoms):<10} | {dz_str:<18} | {dy_str:<18}\n")
-            
-        f.write("\n")
-        f.write("-" * 115 + "\n")
-        f.write(f"{'Target':<20} | {'Pocket RMSD (CA)':<16} | {'CA Match':<10} | {'Δ FYP(Z)-Phe77':<18} | {'Δ DZP(Y)-Phe77':<18}\n")
-        f.write("-" * 115 + "\n")
-        
-        for target in args.targets:
-            rmsd, n_atoms = calc_rmsd(args.ref, target)
-            
-            # Distance from Ligand Z (FYP) to gamma chain Phe77 (chain E resi 77)
-            dist_z_phe = get_min_dist(target, "Z", "E", "77")
-            
-            # Distance from Ligand Y (DZP) to gamma chain Phe77 
-            dist_y_phe = get_min_dist(target, "Y", "E", "77")
-                
-            dz_str = f"{dist_z_phe - ref_dist_z_phe:+.3f}" if (dist_z_phe is not None and ref_dist_z_phe is not None) else "N/A"
-            dy_str = f"{dist_y_phe - ref_dist_z_phe:+.3f}" if (dist_y_phe is not None and ref_dist_z_phe is not None) else "N/A"
-            
-            basename = os.path.basename(target)
-            f.write(f"{basename:<20} | {rmsd:<16.3f} | {int(n_atoms):<10} | {dz_str:<18} | {dy_str:<18}\n")
-            
+            f.write(f"{basename:<20} | {rmsd:<16.3f} | {int(n_atoms):<10} | {native_resn:<12} | {dz_his_str:<12} | {dy_his_str:<12} | {dz_phe_str:<12} | {dy_phe_str:<12}\n")
+
     # Print to console as well
     with open(args.out, "r") as f:
         print(f.read())

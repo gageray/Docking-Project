@@ -161,16 +161,25 @@ def main():
                     cmd.create("target", "target or lig_copy")
                     cmd.delete("lig_copy")
 
-                    # Record ligand info
-                    lig_coords = cmd.get_coords(f"target and chain {chain_id}")
-                    if lig_coords is not None:
-                        lig_com = np.mean(lig_coords, axis=0).tolist()
-                        ligands_dict[chain_id] = {
-                            "resname": lig_info["resname"],
-                            "source": lig_info.get("source", args.master_receptor),
-                            "native": False,
-                            "position": lig_com
-                        }
+                    # Record ligand info (don't overwrite native ligand metadata if already set)
+                    if chain_id not in ligands_dict:
+                        lig_coords = cmd.get_coords(f"target and chain {chain_id}")
+                        if lig_coords is not None:
+                            lig_com = np.mean(lig_coords, axis=0).tolist()
+                            # Determine actual source - if from reference native, use reference PDB name, else propagate
+                            if lig_info.get("native", False):
+                                # This ligand is native to the reference, so source is the reference structure
+                                actual_source = os.path.basename(args.ref_pdb).replace("_aligned.pdb", "").replace("_ligand.pdb", "")
+                            else:
+                                # This ligand was copied to reference, propagate its source
+                                actual_source = lig_info.get("source", args.master_receptor)
+
+                            ligands_dict[chain_id] = {
+                                "resname": lig_info["resname"],
+                                "source": actual_source,
+                                "native": False,
+                                "position": lig_com
+                            }
 
     # If this is master receptor (no ref_pdb) and has native ligand, record it
     if not args.ref_pdb and native_ligand_resn:
@@ -183,6 +192,57 @@ def main():
                 "native": True,
                 "position": lig_com
             }
+            
+        # USER REQUEST: Ensure DZP is copied back into the aligned master target (6X3U)
+        # Because we align 6X3U manually (without a ref), it doesn't get DZP from the standard copy loop
+        # We need to manually pull DZP from the raw 6X3X_ligand.pdb file and superimpose it
+        if args.master_receptor == "6X3U" and os.path.exists("data/receptors/6X3X_ligand.pdb"):
+            # Load 6X3X holo structure
+            cmd.load("data/receptors/6X3X_ligand.pdb", "temp_6x3x")
+            
+            # 6X3X native DZP is on chain Z in the raw file before alignment
+            dzp_resn = "DZP"
+            dzp_chain_raw = "Z"
+            
+            # If the raw structure has DZP
+            if cmd.count_atoms(f"temp_6x3x and resn {dzp_resn} and chain {dzp_chain_raw}") > 0:
+                # 1. Global Pre-Alignment of 6X3X to the 6X3U target
+                cmd.super("temp_6x3x", "target")
+                
+                # 2. Local Alpha/Gamma Radial Interface Alignment for better precision
+                cmd.pseudoatom("tmp_pocket_center", pos=[0.0, 0.0, 0.0])
+                target_sel = "target and byres (target within 10 of tmp_pocket_center)"
+                
+                bzd_chains_6x3x = ["D", "E"] # a1_bzd, y2_bzd
+                bzd_sel_6x3x = " or ".join([f"chain {c}" for c in bzd_chains_6x3x])
+                temp_6x3x_sel = f"temp_6x3x and ({bzd_sel_6x3x}) and byres (temp_6x3x within 10 of tmp_pocket_center)"
+                
+                # Superimpose 6X3X binding pocket onto 6X3U binding pocket
+                cmd.super(temp_6x3x_sel, target_sel)
+                
+                # Now that 6X3X is aligned to target, extract DZP
+                cmd.create("dzp_copy", f"temp_6x3x and resn {dzp_resn} and chain {dzp_chain_raw}")
+                # Change chain to Y
+                cmd.alter("dzp_copy", "chain='Y'")
+                cmd.sort()
+                
+                # Merge into target
+                cmd.create("target", "target or dzp_copy")
+                
+                # Clean up extracted objects
+                cmd.delete("dzp_copy")
+                cmd.delete("temp_6x3x")
+                cmd.delete("tmp_pocket_center")
+                
+                # Record the newly injected DZP ligand to metadata
+                dzp_coords = cmd.get_coords("target and chain Y")
+                if dzp_coords is not None:
+                    ligands_dict["Y"] = {
+                        "resname": dzp_resn,
+                        "source": "6X3X",
+                        "native": False,
+                        "position": np.mean(dzp_coords, axis=0).tolist()
+                    }
 
     # Update metadata
     if ligands_dict:
