@@ -1,0 +1,8 @@
+{
+    "box_config": "scripts/scheduler/box_config.json",
+    "receptor_dir": "data/receptors/prepped",
+    "ligand_dir": "data/ligands",
+    "work_queue": "work_queue.json",
+    "creds": "service-account-key.json",
+    "kaggle_dir": "scripts/kaggle"
+}

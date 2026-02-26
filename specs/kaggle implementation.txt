@@ -1,0 +1,34 @@
+Kaggle Pipeline Implementation Plan (Git + Drive Integration)
+This design outlines the complete "push-button" integration from local initiation to Kaggle worker execution. The orchestration handles moving data (via Drive) and the Kaggle Worker handles its own environment setup (via Git).
+
+1. Orchestration: 
+local_dispatcher.py
+The local dispatcher is responsible for generating the job queue, safely pushing it where the worker can find it, and then triggering the worker to start.
+
+Proposed Changes:
+Google Drive Sync:
+Optionally verify that receptors and ligands in data/receptors/prepped/ and data/ligands/ have been uploaded to Drive.
+Queue Generation:
+Form work_queue.json representing all combinations of receptors/ligands, omitting any that already exist in the Drive outputs folder.
+Queue Upload:
+Use drive_io.py to upload work_queue.json to the root Drive folder.
+Kernel Push:
+Dynamically generate kernel-metadata.json (pointing to gnina_worker.py) in scripts/kaggle/ and invoke subprocess.run(["kaggle", "kernels", "push", "-p", "scripts/kaggle"]).
+2. Worker Execution: gnina_worker.py
+When the worker script starts in the Kaggle environment, it is initially just an empty Python process. It must bootstrap its dependencies, pull the code, pull the data, and then execute.
+
+Bootstrapping Flow (in gnina_worker.py main()):
+Clone Repository:
+Import or inline the logic from clone_repo.py to run a git clone of your docking project (e.g. https://github.com/gageray/Docking-Project.git) into /kaggle/working/repo.
+Setup Environment:
+Import and execute the functions from /kaggle/working/repo/scripts/kaggle/setup_env.py to automatically fetch/install gnina, rdkit, MDAnalysis, etc., exactly as defined in the repo.
+Data Download (via Google Drive):
+Use /kaggle/working/repo/scripts/kaggle/drive_auth.py and drive_io.py to authenticate.
+Download work_queue.json from the root Drive folder.
+Download the receptors and ligands Drive folders into /kaggle/working/receptors/ and /kaggle/working/ligands/.
+Execution:
+Run GNINA locally (pointing to the downloaded dataset files).
+Upon completion of each thread, immediately upload the resulting output .sdf back to Google Drive via drive_io.py.
+Verification Plan
+Manual Dry Run: Run python scripts/pipeline/local_dispatcher.py locally and verify the queue is uploaded to Drive and the Kaggle worker script is launched.
+Kaggle Kernel Logs: Monitor the triggered Kaggle Kernel using kaggle kernels output to confirm the git clone succeeds, the APT/PIP dependencies install properly, the data downloads from Drive, and the GNINA iterations complete.
