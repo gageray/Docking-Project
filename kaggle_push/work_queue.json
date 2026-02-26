@@ -1,0 +1,22 @@
+[
+  {
+    "receptor": "6X3U_apo.pdbqt",
+    "ligand": "flumazenil.sdf",
+    "cx": 0.0,
+    "cy": 0.0,
+    "cz": 0.0,
+    "sx": 20.0,
+    "sy": 20.0,
+    "sz": 20.0
+  },
+  {
+    "receptor": "6X3U_apo.pdbqt",
+    "ligand": "diazepam.sdf",
+    "cx": 0.0,
+    "cy": 0.0,
+    "cz": 0.0,
+    "sx": 20.0,
+    "sy": 20.0,
+    "sz": 20.0
+  }
+]
