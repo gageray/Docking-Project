@@ -8,38 +8,76 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-REPO_URL = "https://github.com/gageray/Docking-Project.git"
-SPARSE_PATH = "kaggle_push"
+# Drive folder IDs
+DRIVE_PUSH_FOLDER = "1_rJoAgziylRUQhWqXB2deTU1YW5_hBXM"
+DRIVE_OUTPUTS_FOLDER = "1u3U0R069wtYTLSBn2dRRaSXF74JPsoHk"
 
-def run_cmd(cmd, check=True, capture=False):
-    """Run shell command with error handling."""
-    result = subprocess.run(
-        cmd, shell=True, check=check,
-        capture_output=capture, text=True
+def get_credentials_path():
+    """Find credentials in Kaggle dataset or working directory."""
+    if os.path.exists("/kaggle/input/gdrive-oauth/key.json"):
+        return "/kaggle/input/gdrive-oauth/key.json"
+    elif os.path.exists("/kaggle/working/key.json"):
+        return "/kaggle/working/key.json"
+    return None
+
+def download_workspace():
+    """Download push folder from Google Drive."""
+    print("\n=== Downloading workspace from Drive ===")
+
+    creds_path = get_credentials_path()
+    if not creds_path:
+        raise Exception("No Drive credentials found!")
+
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaIoBaseDownload
+
+    creds = service_account.Credentials.from_service_account_file(
+        creds_path, scopes=["https://www.googleapis.com/auth/drive"]
     )
-    return result.stdout if capture else None
+    service = build("drive", "v3", credentials=creds)
 
-def clone_workspace():
-    """Sparse clone just the kaggle_push folder."""
-    print("\n=== Cloning workspace from GitHub ===")
+    # Download all files from push folder
+    results = service.files().list(
+        q=f"'{DRIVE_PUSH_FOLDER}' in parents and trashed=false",
+        fields="files(id, name, mimeType)"
+    ).execute()
 
-    # Clone with sparse checkout
-    run_cmd("git clone --depth 1 --filter=blob:none --sparse " + REPO_URL + " /tmp/repo")
-    run_cmd("cd /tmp/repo && git sparse-checkout set " + SPARSE_PATH)
-
-    # Copy kaggle_push contents to /kaggle/working
-    src = Path(f"/tmp/repo/{SPARSE_PATH}")
-    for item in src.iterdir():
-        dest = Path("/kaggle/working") / item.name
-        if item.is_dir():
-            shutil.copytree(item, dest, dirs_exist_ok=True)
+    files = results.get("files", [])
+    for file in files:
+        if file["mimeType"] == "application/vnd.google-apps.folder":
+            download_folder(service, file["id"], file["name"], "/kaggle/working")
         else:
-            shutil.copy2(item, dest)
+            download_file(service, file["id"], file["name"], "/kaggle/working")
 
-    print(f"  ✓ Workspace cloned to /kaggle/working")
+    print(f"  ✓ Downloaded {len(files)} items from push folder")
 
-    # Cleanup
-    shutil.rmtree("/tmp/repo")
+def download_file(service, file_id, file_name, dest_dir):
+    """Download a single file from Drive."""
+    from googleapiclient.http import MediaIoBaseDownload
+    request = service.files().get_media(fileId=file_id)
+    dest_path = os.path.join(dest_dir, file_name)
+    with open(dest_path, "wb") as f:
+        downloader = MediaIoBaseDownload(f, request)
+        done = False
+        while not done:
+            _, done = downloader.next_chunk()
+    print(f"    ↓ {file_name}")
+
+def download_folder(service, folder_id, folder_name, parent_dir):
+    """Download a folder and its contents recursively."""
+    dest_dir = os.path.join(parent_dir, folder_name)
+    os.makedirs(dest_dir, exist_ok=True)
+    results = service.files().list(
+        q=f"'{folder_id}' in parents and trashed=false",
+        fields="files(id, name, mimeType)"
+    ).execute()
+    files = results.get("files", [])
+    for file in files:
+        if file["mimeType"] == "application/vnd.google-apps.folder":
+            download_folder(service, file["id"], file["name"], dest_dir)
+        else:
+            download_file(service, file["id"], file["name"], dest_dir)
 
 def setup_environment():
     """Install dependencies and verify environment."""
@@ -62,21 +100,26 @@ def generate_run_id():
     now = datetime.now()
     date_prefix = now.strftime("%y-%m-%d")
 
-    # Check if credentials exist for Drive check
-    if not os.path.exists("/kaggle/working/key.json"):
+    creds_path = get_credentials_path()
+    if not creds_path:
         return f"{date_prefix}-00"
 
     # Check Drive for existing runs today
     try:
-        sys.path.insert(0, "/kaggle/working")
-        import drive_auth, drive_io
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
 
-        service, _ = drive_auth.setup_drive("/kaggle/working/key.json", verify=False)
-        files = drive_io.list_drive_folder(
-            service,
-            drive_auth.DEFAULT_FOLDERS["outputs"],
-            verbose=False
+        creds = service_account.Credentials.from_service_account_file(
+            creds_path, scopes=["https://www.googleapis.com/auth/drive"]
         )
+        service = build("drive", "v3", credentials=creds)
+
+        results = service.files().list(
+            q=f"'{DRIVE_OUTPUTS_FOLDER}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            fields="files(id, name)"
+        ).execute()
+
+        files = results.get("files", [])
 
         # Find max hex suffix for today
         max_suffix = -1
@@ -118,17 +161,21 @@ def upload_outputs(run_id, zip_output=False):
     """Upload outputs folder to Drive."""
     print("\n=== Uploading outputs to Drive ===")
 
-    if not os.path.exists("/kaggle/working/key.json"):
+    creds_path = get_credentials_path()
+    if not creds_path:
         print("  ⚠ No credentials found, skipping upload")
         return
 
     try:
-        sys.path.insert(0, "/kaggle/working")
-        import drive_auth
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
 
-        service, _ = drive_auth.setup_drive("/kaggle/working/key.json", verify=False)
-        outputs_folder_id = drive_auth.DEFAULT_FOLDERS["outputs"]
+        creds = service_account.Credentials.from_service_account_file(
+            creds_path, scopes=["https://www.googleapis.com/auth/drive"]
+        )
+        service = build("drive", "v3", credentials=creds)
+        outputs_folder_id = DRIVE_OUTPUTS_FOLDER
 
         # Create run folder on Drive
         folder_meta = {
@@ -168,7 +215,7 @@ def main():
 
     try:
         # Startup
-        clone_workspace()
+        download_workspace()
         setup_environment()
 
         # Generate run ID

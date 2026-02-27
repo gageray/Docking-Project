@@ -1,0 +1,15 @@
+Native: data/output/native_FYP_crystal_CORRECT.sdf
+Docked: data/output/6X3U_apo_flumazenil_out_noH.sdf
+
+Pose	RMSD (Å)	Atoms	Quality
+1	2.517	22	POOR
+2	2.462	22	POOR
+3	2.517	22	POOR
+4	2.535	22	POOR
+5	2.535	22	POOR
+6	2.517	22	POOR
+7	2.533	22	POOR
+8	2.535	22	POOR
+9	2.517	22	POOR
+
+Best: Pose 2, RMSD = 2.462 Å

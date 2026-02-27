@@ -1,0 +1,10 @@
+{
+  "receptors": ["6X3U_apo.pdbqt"],
+  "ligands": ["flumazenil.sdf", "diazepam.sdf"],
+  "boxes": [
+    {
+      "center": [0.0, 0.0, 0.0],
+      "size": [20.0, 20.0, 20.0]
+    }
+  ]
+}

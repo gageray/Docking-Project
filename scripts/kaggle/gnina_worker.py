@@ -6,9 +6,6 @@ import sys
 from queue import Queue
 from typing import Dict, Any
 
-# Ensure we can import the local Kaggle scripts after cloning
-sys.path.insert(0, '/kaggle/working/repo/scripts/kaggle')
-
 # Global queue for thread-safe GPU ID distribution allocation
 job_queue: Queue[int] = Queue()
 
@@ -63,84 +60,19 @@ def process_job(job_data: Dict[str, Any]) -> None:
             
             subprocess.run(cmd, env=env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             
-        print(f"[+] Thread {gpu_id} completed {out_name}. Uploading to Drive...")
-        
-        # As soon as it finishes, upload it to Drive to safely persist it
-        import drive_io, drive_auth # type: ignore
-        service, _ = drive_auth.setup_drive("/kaggle/input/my-creds/key.json", verify=False)
-        drive_io.upload_file(service, out_path, drive_auth.DEFAULT_FOLDERS["outputs"])
+        print(f"[+] GPU {gpu_id} completed: {out_name}")
         
     except Exception as e:
         print(f"[-] Job failed on GPU {gpu_id}: {e}")
     finally:
         job_queue.put(gpu_id)
 
-def bootstrap_environment():
-    """Clone the repo and install dependencies before running jobs."""
-    print("=== Bootstrapping Environment ===")
-    
-    # 1. We must download the clone repo script from GitHub directly using standard tools since it's a chicken-egg problem.
-    os.makedirs("/kaggle/working/repo", exist_ok=True)
-    
-    # Or instead, assume we are pushing the kaggle directory including `gnina_worker.py`, `clone_repo.py`, `setup_env.py` directly as kernel files
-    # Yes, the dispatcher pushes `scripts/kaggle/*`! So they are in `sys.path` where the kernel runs.
-    # We can just import them directly!
-    
-    import clone_repo # type: ignore
-    print("[*] Cloning repository...")
-    repo_info = clone_repo.setup_repo(
-        repo_url="https://github.com/gageray/Docking-Project.git",
-        dest_path="/kaggle/working/repo",
-        pull_if_exists=True
-    )
-    
-    # 2. Add repo Kaggle scripts to path just in case
-    sys.path.insert(0, '/kaggle/working/repo/scripts/kaggle')
-    
-    import setup_env # type: ignore
-    print("[*] Installing environment tools...")
-    setup_env.setup_kaggle_environment(verify=True)
-    
-    # 3. Drive Authenticate and pull Data
-    print("[*] Contacting Google Drive for data download...")
-    import drive_auth, drive_io # type: ignore
-    
-    # Kaggle dataset secrets MUST be mounted here for this to work
-    key_path = "/kaggle/input/my-creds/key.json"
-    if not os.path.exists(key_path):
-        print(f"[-] WARNING: Drive credentials not found at {key_path}")
-        print("[-] Execution will likely fail.")
-        
-    service, _ = drive_auth.setup_drive(key_path, verify=False)
-    
-    # Define outputs directory so GNINA doesn't complain
-    os.makedirs("/kaggle/working/outputs", exist_ok=True)
-    
-    print("[*] Downloading receptors...")
-    drive_io.download_folder(service, drive_auth.DEFAULT_FOLDERS["receptors"], "/kaggle/working/receptors")
-    
-    print("[*] Downloading ligands...")
-    drive_io.download_folder(service, drive_auth.DEFAULT_FOLDERS["ligands"], "/kaggle/working/ligands")
-    
-    print("[*] Downloading work_queue.json...")
-    # work_queue.json should be in root
-    files = drive_io.list_drive_folder(service, drive_auth.DEFAULT_FOLDERS["root"], verbose=False)
-    queue_file_id = None
-    for f in files:
-        if f['name'] == 'work_queue.json':
-            queue_file_id = f['id']
-            break
-            
-    if queue_file_id:
-        drive_io.download_from_drive(service, queue_file_id, "/kaggle/working/work_queue.json")
-    else:
-        print("[-] FATAL: work_queue.json not found in Drive root.")
-        sys.exit(1)
-
-
 def main() -> None:
-    # Bootstrap the Kaggle environment (Git clone, installations, Drive downloads)
-    bootstrap_environment()
+    """Process all jobs from work_queue.json using available GPUs."""
+    print("=== GNINA Docking Worker ===")
+
+    # Ensure outputs directory exists
+    os.makedirs("/kaggle/working/outputs", exist_ok=True)
     
     work_file = '/kaggle/working/work_queue.json'
     if not os.path.exists(work_file):

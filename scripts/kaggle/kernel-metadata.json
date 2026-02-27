@@ -1,5 +1,5 @@
 {
-    "id": "gageray/gnina-docking-job",
+    "id": "ineptrobot/gnina-docking-job",
     "title": "GNINA Docking Job",
     "code_file": "gnina_worker.py",
     "language": "python",

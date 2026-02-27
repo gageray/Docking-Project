@@ -1,0 +1,15 @@
+Native: data/ligands/flumazenil.sdf
+Docked: data/output/6X3U_apo_flumazenil_out.sdf
+
+Pose	RMSD (Å)	Atoms	Quality
+1	0.611	22	EXCELLENT
+2	0.518	22	EXCELLENT
+3	0.611	22	EXCELLENT
+4	0.478	22	EXCELLENT
+5	0.481	22	EXCELLENT
+6	0.611	22	EXCELLENT
+7	0.506	22	EXCELLENT
+8	0.483	22	EXCELLENT
+9	0.611	22	EXCELLENT
+
+Best: Pose 4, RMSD = 0.478 Å
