@@ -84,5 +84,29 @@
             }
         ],
         "output_file": "box_params.json"
+    },
+    "docking_validation": {
+        "enabled": true,
+        "test_cases": [
+            {
+                "name": "6X3U_flumazenil_self_dock",
+                "receptor": "6X3U_apo",
+                "ligand": "flumazenil",
+                "native_pose": "data/ligands/flumazenil.sdf",
+                "expected_rmsd_threshold": 2.0,
+                "run_before_production": true
+            }
+        ],
+        "gnina_profile": "validation",
+        "output_dir": "data/validation",
+        "receptor_dir": "data/receptors/prepped",
+        "ligand_dir": "data/ligands"
+    },
+    "docking_production": {
+        "gnina_profile": "thorough",
+        "receptor_dir": "data/receptors/prepped",
+        "ligand_dir": "data/ligands",
+        "output_dir": "data/outputs",
+        "box_config": "box_params.json"
     }
 }

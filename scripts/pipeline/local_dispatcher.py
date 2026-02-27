@@ -44,32 +44,33 @@ def discover_local_files(receptor_dir: Path, ligand_dir: Path):
     ligands = [f.name for f in ligand_dir.glob("*.sdf")] if ligand_dir.exists() else []
     return receptors, ligands
 
-def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path, creds_path: str):
+def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path, creds_path: str, gnina_profile: str = "thorough", task_type: str = "gnina_docking", max_workers: int = 2):
     """
     Reads local configurations and generates a fully resolved array of GNINA parameters.
+    Returns dict with metadata and jobs array for new worker format.
     """
     box_cfg = load_box_metadata(box_config_path)
     receptors, ligands = discover_local_files(receptor_dir, ligand_dir)
     completed = poll_google_drive(creds_path)
     queue = []
-    
+
     # Ensure __default__ exists for the Pyre linter
     default_box = box_cfg.get("__default__", {})
     if not isinstance(default_box, dict):
         default_box = {}
-        
+
     for rec, lig in itertools.product(receptors, ligands):
         out_name = f"{rec.replace('.pdbqt', '')}_{lig.replace('.sdf', '')}_out.sdf"
-        
+
         if out_name in completed:
             continue
-            
+
         rec_key = rec.replace('_apo.pdbqt', '_prepped')
-        
+
         box = box_cfg.get(rec_key, default_box)
         if not isinstance(box, dict):
             box = default_box
-            
+
         queue.append({
             "receptor": rec,
             "ligand": lig,
@@ -80,12 +81,20 @@ def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path,
             "sy": float(box.get("size_y", 25.0)),
             "sz": float(box.get("size_z", 25.0)),
         })
-        
+
         # Respect Kaggle batch limits (e.g. 500 per push)
         if len(queue) >= 500:
             break
-            
-    return queue
+
+    # Return dict with metadata for new worker format
+    from datetime import datetime
+    return {
+        "task_type": task_type,
+        "gnina_profile": gnina_profile,
+        "max_workers": max_workers,
+        "generated_at": datetime.now().isoformat(),
+        "jobs": queue
+    }
 
 def upload_queue_to_drive(work_queue_path: Path, creds_path: str):
     """Upload work_queue.json to Google Drive."""
@@ -116,14 +125,16 @@ def main():
     parser.add_argument("--work-queue", type=Path, help="Output path for the generated work queue")
     parser.add_argument("--creds", type=str, help="Path to Google Drive API credentials")
     parser.add_argument("--kaggle-dir", type=Path, help="Directory containing Kaggle Kernel scripts and metadata")
-    
+    parser.add_argument("--gnina-profile", type=str, help="GNINA configuration profile (quick_screening/standard/thorough/validation)")
+    parser.add_argument("--max-workers", type=int, help="Number of GPU workers")
+
     args = parser.parse_args()
-    
+
     config_data = {}
     if args.config and args.config.exists():
         with open(args.config, 'r') as f:
             config_data = json.load(f)
-            
+
     # Priority: CLI Argument > JSON Config > Hardcoded Default
     box_config = args.box_config or Path(config_data.get("box_config", "scripts/scheduler/box_config.json"))
     receptor_dir = args.receptor_dir or Path(config_data.get("receptor_dir", "data/receptors/prepped"))
@@ -131,23 +142,28 @@ def main():
     work_queue = args.work_queue or Path(config_data.get("work_queue", "work_queue.json"))
     creds = args.creds or config_data.get("creds", "credentials/key.json")
     kaggle_dir = args.kaggle_dir or Path(config_data.get("kaggle_dir", "scripts/kaggle"))
-    
+    gnina_profile = args.gnina_profile or config_data.get("gnina_profile", "thorough")
+    max_workers = args.max_workers or config_data.get("max_workers", 2)
+
     print("Checking for incomplete jobs...")
-    jobs = build_job_queue(box_config, receptor_dir, ligand_dir, creds)
-    
-    if not jobs:
+    job_data = build_job_queue(box_config, receptor_dir, ligand_dir, creds, gnina_profile, "gnina_docking", max_workers)
+
+    if not job_data["jobs"]:
         print("All docking jobs completed! Nothing to push to Kaggle.")
         return
-        
-    print(f"Submitting {len(jobs)} completely resolved jobs to Kaggle cluster...")
-    
+
+    print(f"Submitting {len(job_data['jobs'])} completely resolved jobs to Kaggle cluster...")
+    print(f"  Task type: {job_data['task_type']}")
+    print(f"  GNINA profile: {job_data['gnina_profile']}")
+    print(f"  Workers: {job_data['max_workers']}")
+
     with open(work_queue, 'w') as f:
-        json.dump(jobs, f, indent=2)
-        
+        json.dump(job_data, f, indent=2)
+
     print(f"Wrote {work_queue}.")
-    
+
     upload_queue_to_drive(work_queue, creds)
-    
+
     print("[*] Pushing kernel to Kaggle...")
     # NOTE: user must have kaggle installed locally and configured via ~/.kaggle/kaggle.json
     import subprocess

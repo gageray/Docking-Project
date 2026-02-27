@@ -1,11 +1,82 @@
 """
-Demo script to extract GNINA / Vina energies directly from an .sdf file.
+Extract GNINA / Vina energies directly from .sdf files with quality assessment.
 Run this locally on your PC after downloading the outputs from Google Drive!
 """
 from rdkit import Chem
 from pathlib import Path
 import csv
 import sys
+
+
+def classify_binding(vina_aff, cnn_aff):
+    """Classify binding quality from scores"""
+    if vina_aff == "N/A" and cnn_aff == "N/A":
+        return "NO_SCORES"
+
+    # Convert to float if available
+    try:
+        vina = float(vina_aff) if vina_aff != "N/A" else None
+        cnn = float(cnn_aff) if cnn_aff != "N/A" else None
+    except (ValueError, TypeError):
+        return "INVALID_SCORES"
+
+    # Check for positive energies (bad)
+    if vina is not None and vina > 0:
+        return "POOR_POSITIVE_ENERGY"
+    if cnn is not None and cnn > 0:
+        return "POOR_POSITIVE_ENERGY"
+
+    # Use best available score
+    if vina is not None and cnn is not None:
+        best_score = min(vina, cnn)
+    elif vina is not None:
+        best_score = vina
+    elif cnn is not None:
+        best_score = cnn
+    else:
+        return "NO_SCORES"
+
+    if best_score < -10:
+        return "EXCELLENT"
+    elif best_score < -8:
+        return "GOOD"
+    elif best_score < -6:
+        return "MODERATE"
+    else:
+        return "WEAK"
+
+
+def check_warnings(vina_aff, cnn_aff, cnn_score):
+    """Flag suspicious results"""
+    warnings = []
+
+    # Check for missing Vina score
+    if vina_aff == "N/A" or vina_aff == 0.0:
+        warnings.append("VINA_NOT_SAVED")
+
+    # Check for positive CNN energy
+    try:
+        if cnn_aff != "N/A" and float(cnn_aff) > 0:
+            warnings.append("POSITIVE_CNN_ENERGY")
+    except (ValueError, TypeError):
+        pass
+
+    # Check for positive Vina energy
+    try:
+        if vina_aff != "N/A" and float(vina_aff) > 0:
+            warnings.append("POSITIVE_VINA_ENERGY")
+    except (ValueError, TypeError):
+        pass
+
+    # Check for low CNN confidence
+    try:
+        if cnn_score != "N/A" and float(cnn_score) < 0.5:
+            warnings.append("LOW_CNN_CONFIDENCE")
+    except (ValueError, TypeError):
+        pass
+
+    return "|".join(warnings) if warnings else "OK"
+
 
 def parse_sdf_file(sdf_path):
     """Parses a single GNINA _out.sdf file and returns a list of dictionaries for each pose."""
@@ -15,21 +86,28 @@ def parse_sdf_file(sdf_path):
         for i, mol in enumerate(supplier):
             if mol is None:
                 continue
-                
+
             pose_num = i + 1
             props = mol.GetPropsAsDict()
-            
+
+            vina_aff = props.get("minimizedAffinity", "N/A")
+            cnn_score = props.get("CNNscore", "N/A")
+            cnn_aff = props.get("CNNaffinity", "N/A")
+            cnn_var = props.get("CNNvariance", "N/A")
+
             results.append({
                 "File": Path(sdf_path).name,
                 "Pose": pose_num,
-                "Vina_Affinity_kcal_mol": props.get("minimizedAffinity", "N/A"),
-                "CNN_Score_Probability": props.get("CNNscore", "N/A"),
-                "CNN_Affinity_kcal_mol": props.get("CNNaffinity", "N/A"),
-                "CNN_Variance": props.get("CNNvariance", "N/A")
+                "Vina_Affinity_kcal_mol": vina_aff,
+                "CNN_Score_Probability": cnn_score,
+                "CNN_Affinity_kcal_mol": cnn_aff,
+                "CNN_Variance": cnn_var,
+                "Binding_Quality": classify_binding(vina_aff, cnn_aff),
+                "Warning": check_warnings(vina_aff, cnn_aff, cnn_score)
             })
     except Exception as e:
         print(f"[-] Error reading {sdf_path}: {e}")
-        
+
     return results
 
 def process_directory(input_dir, output_csv):

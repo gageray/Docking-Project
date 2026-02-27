@@ -244,3 +244,203 @@ pymol data/receptors/6X3U_aligned.pdb \
 - minimizedAffinity: 0.0 (NOT SAVED) ❌
 
 **STATUS**: Docking validation COMPLETELY FAILED. Must fix parameters and re-run before using for any novel compounds.
+
+---
+
+## RESOLUTION - IMPLEMENTATION COMPLETE
+
+### Code Changes Implemented
+
+#### 1. Created `scripts/pipeline/gnina_runner.py`
+Centralized GNINA execution logic with configuration profiles:
+- **GNINAConfig class**: Immutable configuration with 4 profiles
+  - `quick_screening`: exhaustiveness=8, num_modes=9, cnn_scoring=none
+  - `standard`: exhaustiveness=16, num_modes=20, cnn_scoring=all
+  - `thorough`: exhaustiveness=32, num_modes=20, cnn_scoring=all
+  - `validation`: exhaustiveness=32, num_modes=20, cnn_scoring=all
+- **GNINARunner class**: Execution logic with proper error handling
+- **Score extraction**: Built-in parsing of all GNINA output scores
+- **Validation**: Automatic quality checks on output files
+
+#### 2. Refactored `scripts/kaggle/gnina_worker.py` to `scripts/kaggle/worker.py`
+Generic multi-GPU task worker (GNINA-agnostic):
+- Imports GNINARunner from pipeline module
+- Loads configuration from work_queue.json metadata
+- Supports multiple task types (extensible architecture)
+- Proper score logging and validation warnings
+- Backup saved as `gnina_worker_deprecated.py`
+
+#### 3. Updated `scripts/pipeline/local_dispatcher.py`
+Added metadata support for new worker format:
+- New parameters: `gnina_profile`, `task_type`, `max_workers`
+- Returns dict with metadata + jobs array
+- CLI arguments for profile selection
+- Updated job queue format
+
+#### 4. Enhanced `scripts/pipeline/extract_scores.py`
+Quality assessment and warning flags:
+- `classify_binding()`: EXCELLENT/GOOD/MODERATE/WEAK/POOR_POSITIVE_ENERGY
+- `check_warnings()`: VINA_NOT_SAVED, POSITIVE_CNN_ENERGY, LOW_CNN_CONFIDENCE
+- New CSV columns: Binding_Quality, Warning
+
+#### 5. Created `scripts/pipeline/run_validation.py`
+Automated validation workflow:
+- Runs GNINA with validation-grade parameters
+- Calculates RMSD vs native pose
+- Extracts and validates scores
+- Generates markdown report with pass/fail criteria
+- Success criteria:
+  - RMSD < 2.0A
+  - Best RMSD pose in top 5 by score
+  - At least one pose with negative energy
+  - Runtime > 300s (sufficient exhaustiveness)
+
+#### 6. Updated `config.json`
+Added validation and production configuration sections:
+- `docking_validation`: Test cases, GNINA profile, output directory
+- `docking_production`: Production settings, thorough profile
+
+#### 7. Updated `scripts/pipeline/local_dispatcher.json`
+Added new configuration parameters:
+- `gnina_profile`: "thorough"
+- `task_type`: "gnina_docking"
+- `max_workers`: 2
+
+#### 8. Created `specs/gnina_configuration.md`
+Comprehensive GNINA parameter documentation:
+- Profile comparison table
+- Parameter explanations
+- Score interpretation guide
+- Common issues and fixes
+- Usage examples
+- Migration guide
+
+### Configuration Changes (CRITICAL FIXES)
+
+**OLD (BROKEN)**:
+```python
+"--exhaustiveness", "8"        # Too low
+"--num_modes", "9"             # Too few
+"--cnn_scoring", "rescore"     # Loses Vina scores
+```
+
+**NEW (FIXED)**:
+```python
+exhaustiveness: 32             # Thorough search
+num_modes: 20                  # More diverse poses
+cnn_scoring: "all"             # Both Vina AND CNN scores
+```
+
+### Validation Workflow
+
+**Run before production**:
+```bash
+python scripts/pipeline/run_validation.py \
+    --receptor 6X3U_apo \
+    --ligand flumazenil \
+    --native data/ligands/flumazenil.sdf \
+    --config config.json \
+    --out validation_report.md
+```
+
+**Expected Results**:
+- RMSD < 2.0A (PASS)
+- Negative energies in output (PASS)
+- Runtime > 5 minutes (PASS)
+- Best pose in top 5 (PASS)
+
+### File Structure Summary
+
+**NEW FILES**:
+- `scripts/pipeline/gnina_runner.py` - GNINA execution module
+- `scripts/pipeline/run_validation.py` - Automated validation
+- `specs/gnina_configuration.md` - Documentation
+
+**RENAMED FILES**:
+- `scripts/kaggle/gnina_worker.py` → `scripts/kaggle/worker.py`
+- Backup: `scripts/kaggle/gnina_worker_deprecated.py`
+
+**MODIFIED FILES**:
+- `scripts/pipeline/local_dispatcher.py` - Metadata support
+- `scripts/pipeline/extract_scores.py` - Quality assessment
+- `scripts/pipeline/local_dispatcher.json` - New parameters
+- `config.json` - Validation/production sections
+- `specs/fixing_docking_validation.md` - This resolution section
+
+### Testing Before Production
+
+1. **Run validation workflow**:
+   ```bash
+   cd /path/to/project
+   python scripts/pipeline/run_validation.py \
+       --receptor 6X3U_apo \
+       --ligand flumazenil \
+       --native data/ligands/flumazenil.sdf \
+       --config config.json
+   ```
+
+2. **Review validation report**: Check for PASS status and RMSD < 2.0A
+
+3. **Dispatch to Kaggle**:
+   ```bash
+   python scripts/pipeline/local_dispatcher.py \
+       --config scripts/pipeline/local_dispatcher.json \
+       --gnina-profile thorough
+   ```
+
+4. **Extract and analyze results**:
+   ```bash
+   python scripts/pipeline/extract_scores.py
+   # Review Binding_Quality and Warning columns in CSV
+   ```
+
+### Architecture Benefits
+
+**Separation of Concerns**:
+- GNINA logic in pipeline module (reusable)
+- Worker is task-agnostic (extensible)
+- Configuration-driven behavior (maintainable)
+
+**Quality Assurance**:
+- Automated validation before production
+- Quality flags in score extraction
+- Proper error handling and logging
+
+**Maintainability**:
+- Single source of truth for GNINA parameters
+- No hardcoded values in worker
+- Comprehensive documentation
+
+### Migration Notes
+
+**For Kaggle Kernels**:
+1. Update kernel to use `worker.py` instead of `gnina_worker.py`
+2. Ensure `scripts/pipeline/gnina_runner.py` is uploaded with kernel
+3. Update `work_queue.json` to include metadata section
+
+**For Local Testing**:
+1. Use `gnina_runner.py` directly for single docking runs
+2. Use `run_validation.py` for benchmarking
+3. Use `local_dispatcher.py` for batch job creation
+
+### Known Limitations
+
+1. **Runtime**: Thorough profile (exhaustiveness=32) takes 10-20 min/ligand
+   - This is NORMAL and expected for validation-grade docking
+   - Kaggle kernels can handle 30-40 ligands per run (9-12 hour limit)
+
+2. **Deprecated file kept**: `gnina_worker_deprecated.py` retained as backup
+   - Can be deleted after confirming new worker functions correctly
+
+3. **Box parameters**: Still loaded from `box_params.json`
+   - Future: Integrate box calculation into validation workflow
+
+### Next Steps
+
+1. **Test validation locally** with flumazenil
+2. **Review validation report** for PASS/FAIL
+3. **Push updated worker to Kaggle** if validation passes
+4. **Run production docking** with thorough profile
+5. **Analyze results** with enhanced extract_scores.py
+
+**Status**: All code changes implemented. Ready for validation testing.

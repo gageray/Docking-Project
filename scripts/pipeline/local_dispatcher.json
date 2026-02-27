@@ -4,5 +4,8 @@
     "ligand_dir": "data/ligands",
     "work_queue": "work_queue.json",
     "creds": "service-account-key.json",
-    "kaggle_dir": "scripts/kaggle"
+    "kaggle_dir": "scripts/kaggle",
+    "gnina_profile": "thorough",
+    "task_type": "gnina_docking",
+    "max_workers": 2
 }
