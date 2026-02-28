@@ -1,13 +1,13 @@
 {
     "id": "ineptrobot/gnina-docking-job",
     "title": "GNINA Docking Job",
-    "code_file": "gnina_worker.py",
+    "code_file": "bootstrap.py",
     "language": "python",
     "kernel_type": "script",
     "is_private": "true",
     "enable_gpu": "true",
     "enable_internet": "true",
-    "dataset_sources": [],
+    "dataset_sources": ["ineptrobot/drive-oauth"],
     "competition_sources": [],
     "kernel_sources": [],
     "model_sources": []

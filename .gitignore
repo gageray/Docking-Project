@@ -32,8 +32,7 @@ Thumbs.db
 *.log
 
 # Credentials
-service-account-key.json
-kaggle.json
+drive_oauth.json
 
 # Temporary files
 *.tmp
@@ -47,4 +46,3 @@ kaggle.json
 # *.png
 # *.pdb
 # *.sdf
-kaggle_push/key.json

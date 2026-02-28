@@ -15,7 +15,7 @@ from typing import Dict, Any, Callable
 # Add scripts directory to path for imports
 sys.path.append("/kaggle/working/scripts")
 
-from pipeline.gnina_runner import GNINARunner, GNINAConfig
+from gnina_runner import GNINARunner, GNINAConfig
 
 
 # Global queue for thread-safe GPU ID distribution
@@ -86,7 +86,16 @@ class TaskWorker:
             # Set GPU environment
             env_vars = {"CUDA_VISIBLE_DEVICES": str(gpu_id)}
 
-            print(f"[*] GPU {gpu_id} starting GNINA for {out_name}")
+            print(f"\n[*] GPU {gpu_id} starting GNINA job")
+            print(f"    Receptor: {job_data['receptor']}")
+            print(f"    Ligand: {job_data['ligand']}")
+            print(f"    Output: {out_name}")
+            print(f"    Box Center: ({job_data['cx']}, {job_data['cy']}, {job_data['cz']})")
+            print(f"    Box Size: ({job_data['sx']}, {job_data['sy']}, {job_data['sz']})")
+            print(f"    Profile: {self.config.gnina_profile}")
+            print(f"      exhaustiveness: {gnina_config.exhaustiveness}")
+            print(f"      num_modes: {gnina_config.num_modes}")
+            print(f"      cnn_scoring: {gnina_config.cnn_scoring}")
 
             # Run docking
             result = runner.run_docking(
@@ -160,8 +169,11 @@ def main() -> None:
     worker_config = WorkerConfig(data)
     jobs = data.get("jobs", [])
 
-    print(f"[*] Configuration: {worker_config}")
-    print(f"[*] Jobs to process: {len(jobs)}")
+    print(f"\n[*] Worker Configuration:")
+    print(f"    Task Type: {worker_config.task_type}")
+    print(f"    GNINA Profile: {worker_config.gnina_profile}")
+    print(f"    Max Workers (GPUs): {worker_config.max_workers}")
+    print(f"\n[*] Jobs to process: {len(jobs)}")
 
     if len(jobs) == 0:
         print("[*] No jobs to process. Exiting.")

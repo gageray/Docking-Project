@@ -14,51 +14,48 @@ import time
 
 @dataclass
 class GNINAConfig:
-    """Immutable configuration for GNINA docking runs"""
+    """Optimized configuration for Kaggle Batch Docking"""
     exhaustiveness: int
     num_modes: int
-    cnn_scoring: str  # "none", "rescore", or "all"
-    cpu: int = 8
+    cnn_scoring: str  # "none", "rescore", or "refinement"
+    cpu: int = 4      # Kaggle standard is 4 vCPUs
+    gpu: bool = True  # We assume GPU is enabled in metadata
     gpu_id: Optional[int] = None
 
     @classmethod
     def quick_screening(cls) -> 'GNINAConfig':
-        """Fast screening - minimal parameters for initial filtering"""
+        """Fastest possible pass to find basic binding poses"""
         return cls(
             exhaustiveness=8,
             num_modes=9,
-            cnn_scoring="none",
-            cpu=8
+            cnn_scoring="none"
         )
 
     @classmethod
     def standard(cls) -> 'GNINAConfig':
-        """Standard production runs - balanced accuracy/speed"""
+        """The 'Sweet Spot' - Vina docks, GPU-CNN ranks the results"""
         return cls(
-            exhaustiveness=16,
+            exhaustiveness=12,
             num_modes=20,
-            cnn_scoring="all",
-            cpu=8
+            cnn_scoring="rescore"
         )
 
     @classmethod
     def thorough(cls) -> 'GNINAConfig':
-        """Thorough search - high accuracy for final candidates"""
+        """High Accuracy - GPU-CNN minimizes (refines) every pose"""
         return cls(
-            exhaustiveness=32,
+            exhaustiveness=16,
             num_modes=20,
-            cnn_scoring="all",
-            cpu=8
+            cnn_scoring="refinement"
         )
 
     @classmethod
     def validation(cls) -> 'GNINAConfig':
-        """Validation-grade parameters for benchmarking"""
+        """Max Power - Used for single-ligand critical runs"""
         return cls(
-            exhaustiveness=32,
+            exhaustiveness=24,
             num_modes=20,
-            cnn_scoring="all",
-            cpu=8
+            cnn_scoring="refinement"
         )
 
     @classmethod
@@ -208,11 +205,32 @@ class GNINARunner:
             "--cpu", str(self.config.cpu)
         ]
 
+        # Print full GNINA command
+        print(f"\n    GNINA Command:")
+        print(f"      gnina \\")
+        print(f"        -r {receptor_path.name} \\")
+        print(f"        -l {ligand_path.name} \\")
+        print(f"        -o {output_path.name} \\")
+        print(f"        --center_x {box_params.get('center_x', 0.0)} \\")
+        print(f"        --center_y {box_params.get('center_y', 0.0)} \\")
+        print(f"        --center_z {box_params.get('center_z', 0.0)} \\")
+        print(f"        --size_x {box_params.get('size_x', 25.0)} \\")
+        print(f"        --size_y {box_params.get('size_y', 25.0)} \\")
+        print(f"        --size_z {box_params.get('size_z', 25.0)} \\")
+        print(f"        --exhaustiveness {self.config.exhaustiveness} \\")
+        print(f"        --num_modes {self.config.num_modes} \\")
+        print(f"        --cnn_scoring {self.config.cnn_scoring} \\")
+        print(f"        --cpu {self.config.cpu}")
+        print()
+
         # Set up environment
         env = env_vars.copy() if env_vars else {}
+        if env:
+            print(f"    Environment: {env}")
 
         try:
             # Run GNINA
+            print(f"    Running GNINA...")
             result = subprocess.run(
                 cmd,
                 env={**subprocess.os.environ, **env},

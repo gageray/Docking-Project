@@ -109,8 +109,8 @@ def upload_queue_to_drive(work_queue_path: Path, creds_path: str):
         
     try:
         service, _ = drive_auth.setup_drive(creds_path, verify=False)
-        print(f"[*] Uploading {work_queue_path} to Google Drive...")
-        drive_io.upload_to_drive(service, str(work_queue_path), drive_auth.DEFAULT_FOLDERS["root"], overwrite=True)
+        print(f"[*] Uploading {work_queue_path} to Google Drive push folder...")
+        drive_io.upload_to_drive(service, str(work_queue_path), drive_auth.DEFAULT_FOLDERS["push"], overwrite=True)
     except Exception as e:
         print(f"[-] Error uploading to Google Drive: {e}")
         sys.exit(1)
@@ -140,7 +140,7 @@ def main():
     receptor_dir = args.receptor_dir or Path(config_data.get("receptor_dir", "data/receptors/prepped"))
     ligand_dir = args.ligand_dir or Path(config_data.get("ligand_dir", "data/ligands"))
     work_queue = args.work_queue or Path(config_data.get("work_queue", "work_queue.json"))
-    creds = args.creds or config_data.get("creds", "credentials/key.json")
+    creds = args.creds or config_data.get("creds", "drive_oauth.json")
     kaggle_dir = args.kaggle_dir or Path(config_data.get("kaggle_dir", "scripts/kaggle"))
     gnina_profile = args.gnina_profile or config_data.get("gnina_profile", "thorough")
     max_workers = args.max_workers or config_data.get("max_workers", 2)

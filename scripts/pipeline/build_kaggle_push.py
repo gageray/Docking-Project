@@ -9,21 +9,23 @@ Usage:
 import json
 import shutil
 import argparse
+import sys
 from pathlib import Path
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+# Add scripts/kaggle to path for drive_auth import
+scripts_kaggle = Path(__file__).parent.parent / "kaggle"
+sys.path.insert(0, str(scripts_kaggle))
+import drive_auth
+
 # Drive folder IDs
-DRIVE_PUSH_FOLDER = "1_rJoAgziylRUQhWqXB2deTU1YW5_hBXM"
+DRIVE_PUSH_FOLDER = drive_auth.DEFAULT_FOLDERS["push"]
 
 
-def setup_drive(creds_path):
-    """Authenticate to Drive."""
-    creds = service_account.Credentials.from_service_account_file(
-        creds_path, scopes=["https://www.googleapis.com/auth/drive"]
-    )
-    return build("drive", "v3", credentials=creds)
+def setup_drive(creds_path=None):
+    """Authenticate to Drive using OAuth."""
+    service, _ = drive_auth.setup_drive(creds_path=creds_path, verify=False)
+    return service
 
 
 def clear_push_folder(service):
@@ -54,16 +56,19 @@ def create_folder(service, name, parent_id):
 def upload_file(service, local_path, parent_id):
     """Upload file to Drive."""
     name = local_path.name
+    size = local_path.stat().st_size
+    size_str = f"{size:,} bytes" if size < 1024 else f"{size/1024:.1f} KB" if size < 1024*1024 else f"{size/(1024*1024):.1f} MB"
+
     meta = {
         "name": name,
         "parents": [parent_id]
     }
     media = MediaFileUpload(str(local_path))
     service.files().create(body=meta, media_body=media, fields="id").execute()
-    print(f"  ✓ Uploaded: {name}")
+    print(f"    ↑ {name:40s} ({size_str})")
 
 
-def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", creds_path="service-account-key.json"):
+def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", creds_path=None):
     """
     Upload all files needed for docking to Drive push folder.
 
@@ -72,22 +77,25 @@ def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", cr
         ligands: List of ligand filenames (e.g., ["flumazenil.sdf"])
         boxes: List of box dicts with center/size (one per receptor)
         output_dir: Unused (kept for compatibility)
-        creds_path: Path to Google Drive service account key
+        creds_path: Unused (kept for compatibility, uses config.json OAuth)
     """
-    root = Path(__file__).parent
-    service = setup_drive(root / creds_path)
+    # root is now the project root (up two levels)
+    root = Path(__file__).parent.parent.parent
+    service = setup_drive(creds_path)
 
     # Clear existing files
     clear_push_folder(service)
 
-    print(f"\nUploading to Drive push folder")
+    print(f"\n=== Uploading to Drive push folder ===")
 
     # Create subdirectories
     receptors_folder_id = create_folder(service, "receptors", DRIVE_PUSH_FOLDER)
     ligands_folder_id = create_folder(service, "ligands", DRIVE_PUSH_FOLDER)
     print("  ✓ Created receptors/ and ligands/ folders")
+    print()
 
     # Upload receptor files
+    print("  Receptors:")
     receptor_dir = root / "data" / "receptors" / "prepped"
     for rec in receptors:
         src = receptor_dir / rec
@@ -95,7 +103,9 @@ def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", cr
             raise FileNotFoundError(f"Receptor not found: {src}")
         upload_file(service, src, receptors_folder_id)
 
+    print()
     # Upload ligand files
+    print("  Ligands:")
     ligand_dir = root / "data" / "ligands"
     for lig in ligands:
         src = ligand_dir / lig
@@ -103,11 +113,13 @@ def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", cr
             raise FileNotFoundError(f"Ligand not found: {src}")
         upload_file(service, src, ligands_folder_id)
 
-    # Build and upload work queue
-    work_queue = []
+    print()
+
+    # Build and upload work queue with metadata
+    jobs = []
     for rec, box in zip(receptors, boxes):
         for lig in ligands:
-            work_queue.append({
+            jobs.append({
                 "receptor": rec,
                 "ligand": lig,
                 "cx": box["center"][0],
@@ -118,34 +130,62 @@ def build_push_directory(receptors, ligands, boxes, output_dir="kaggle_push", cr
                 "sz": box["size"][2]
             })
 
+    work_queue_data = {
+        "task_type": "gnina_docking",
+        "gnina_profile": "validation",
+        "max_workers": 2,
+        "jobs": jobs
+    }
+
+    print("  Work Queue:")
+    print(f"    Task Type: {work_queue_data['task_type']}")
+    print(f"    GNINA Profile: {work_queue_data['gnina_profile']}")
+    print(f"    Max Workers: {work_queue_data['max_workers']}")
+    print(f"    Jobs: {len(jobs)}")
+    if jobs:
+        print(f"    First Job: {jobs[0]['receptor']} + {jobs[0]['ligand']}")
+    print()
+
     work_queue_file = root / "work_queue.json"
     with open(work_queue_file, 'w') as f:
-        json.dump(work_queue, f, indent=2)
+        json.dump(work_queue_data, f, indent=2)
 
     upload_file(service, work_queue_file, DRIVE_PUSH_FOLDER)
     work_queue_file.unlink()  # Delete temp file
-    print(f"  ✓ Uploaded work_queue.json ({len(work_queue)} jobs)")
 
-    # Upload Kaggle scripts
+    # Upload scripts to scripts/ folder
+    print()
+    print("  Scripts:")
+    scripts_folder_id = create_folder(service, "scripts", DRIVE_PUSH_FOLDER)
+
     kaggle_scripts = root / "scripts" / "kaggle"
-    needed_scripts = [
+    kaggle_script_files = [
         "setup_env.py",
         "drive_auth.py",
         "drive_io.py",
-        "gnina_worker.py"
+        "worker.py"
     ]
 
-    for script in needed_scripts:
+    for script in kaggle_script_files:
         src = kaggle_scripts / script
         if src.exists():
-            upload_file(service, src, DRIVE_PUSH_FOLDER)
+            upload_file(service, src, scripts_folder_id)
 
-    print(f"\n✓ Push folder ready on Drive")
-    print(f"  Jobs: {len(work_queue)}")
+    # Upload gnina_runner.py from pipeline to scripts/ (flat structure)
+    pipeline_scripts = root / "scripts" / "pipeline"
+    gnina_runner = pipeline_scripts / "gnina_runner.py"
+    if gnina_runner.exists():
+        upload_file(service, gnina_runner, scripts_folder_id)
+
+    print(f"\n{'='*60}")
+    print(f"✓ Push folder ready on Drive")
+    print(f"{'='*60}")
+    print(f"  Jobs: {len(jobs)}")
     print(f"  Receptors: {len(receptors)}")
     print(f"  Ligands: {len(ligands)}")
-    print(f"\nNow push bootstrap to Kaggle:")
-    print(f"  cd kaggle_push && kaggle kernels push -p . --accelerator NvidiaTeslaT4")
+    print(f"  Scripts: {len(kaggle_script_files) + 1}")
+    print(f"\nNext step:")
+    print(f"  cd scripts/kaggle && kaggle kernels push")
 
 
 def main():
@@ -154,7 +194,6 @@ def main():
     parser.add_argument("--ligand", nargs="+", help="Ligand filename(s) from data/ligands/")
     parser.add_argument("--box", help="Box params: cx,cy,cz,sx,sy,sz (e.g., 0,0,0,20,20,20)")
     parser.add_argument("--config", type=Path, help="JSON config file with receptors/ligands/boxes")
-    parser.add_argument("--creds", default="service-account-key.json", help="Path to Drive credentials")
 
     args = parser.parse_args()
 
@@ -177,7 +216,7 @@ def main():
     else:
         parser.error("Provide either --config or (--receptor + --ligand + --box)")
 
-    build_push_directory(receptors, ligands, boxes, "", args.creds)
+    build_push_directory(receptors, ligands, boxes)
 
 
 if __name__ == "__main__":
