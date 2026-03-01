@@ -21,14 +21,16 @@ def setup_scene(obj, meta):
             # Color BZD pocket chains
             if "a1" in chain_desc or "alpha1" in chain_desc:
                 cmd.color("cyan", f"{obj} and chain {chain_id}")
-                # Highlight key alpha residue His101
-                cmd.color("purple", f"{obj} and chain {chain_id} and resi 101")
-                cmd.show("sticks", f"{obj} and chain {chain_id} and resi 101")
+                # Highlight key alpha residue
+                key_res = meta.get("key_alpha_res", "101")
+                cmd.color("purple", f"{obj} and chain {chain_id} and resi {key_res}")
+                cmd.show("sticks", f"{obj} and chain {chain_id} and resi {key_res}")
             elif "y2" in chain_desc or "gamma2" in chain_desc:
                 cmd.color("yellow", f"{obj} and chain {chain_id}")
-                # Highlight key gamma residue Phe77
-                cmd.color("purple", f"{obj} and chain {chain_id} and resi 77")
-                cmd.show("sticks", f"{obj} and chain {chain_id} and resi 77")
+                # Highlight key gamma residue
+                key_res = meta.get("key_gamma_res", "77")
+                cmd.color("purple", f"{obj} and chain {chain_id} and resi {key_res}")
+                cmd.show("sticks", f"{obj} and chain {chain_id} and resi {key_res}")
             else:
                 cmd.color("magenta", f"{obj} and chain {chain_id}")  # Fallback for other bzd
         else:
@@ -40,12 +42,13 @@ def setup_scene(obj, meta):
     ligand_chain = meta.get("target_ligand_chain")
     if ligand_resn and ligand_chain:
         lig_sel = f"{obj} and resn {ligand_resn} and chain {ligand_chain}"
-        cmd.show("sticks", lig_sel)
-        cmd.color("green", f"{lig_sel} and elem C")
-        cmd.color("red", f"{lig_sel} and elem O")
-        cmd.color("red", f"{lig_sel} and elem N")
-        cmd.color("slate", f"{lig_sel} and elem F")
-        cmd.color("grey90", f"{lig_sel} and elem H")
+        if cmd.count_atoms(lig_sel) > 0:
+            cmd.show("sticks", lig_sel)
+            cmd.color("green", f"{lig_sel} and elem C")
+            cmd.color("red", f"{lig_sel} and elem O")
+            cmd.color("red", f"{lig_sel} and elem N")
+            cmd.color("slate", f"{lig_sel} and elem F")
+            cmd.color("grey90", f"{lig_sel} and elem H")
 
 
 def render_side_view(obj, output_path, width=1920, height=1080):
@@ -78,11 +81,35 @@ def render_pocket_view(obj, meta, output_path, width=1920, height=1080):
     ligand_chain = meta.get("target_ligand_chain")
 
     if ligand_resn and ligand_chain:
-        # Zoom to pocket area (ligand + 8Å around it)
         lig_sel = f"{obj} and resn {ligand_resn} and chain {ligand_chain}"
-        cmd.zoom(f"{lig_sel} or ({obj} within 8 of {lig_sel})", buffer=3)
+        if cmd.count_atoms(lig_sel) > 0:
+            # Zoom to pocket area (ligand + 8Å around it)
+            cmd.zoom(f"{lig_sel} or ({obj} within 8 of {lig_sel})", buffer=3)
+            cmd.png(output_path, width=width, height=height, dpi=300, ray=1)
+            return
+
+    # No ligand (or missing), zoom to the key residues instead of a generic center
+    key_alpha = meta.get("key_alpha_res", "101")
+    key_gamma = meta.get("key_gamma_res", "77")
+    
+    alpha_chain = None
+    gamma_chain = None
+    for chain_id, desc in chains.items():
+        if "_bzd" in desc:
+            if "a1" in desc or "alpha1" in desc:
+                alpha_chain = chain_id
+            elif "y2" in desc or "gamma2" in desc:
+                gamma_chain = chain_id
+                
+    sel_parts = []
+    if alpha_chain: sel_parts.append(f"(chain {alpha_chain} and resi {key_alpha})")
+    if gamma_chain: sel_parts.append(f"(chain {gamma_chain} and resi {key_gamma})")
+    
+    if sel_parts:
+        key_sel = f"{obj} and ({' or '.join(sel_parts)})"
+        cmd.zoom(f"{key_sel} or ({obj} within 10 of {key_sel})", buffer=3)
     else:
-        # No ligand, zoom to the standardized 0,0,0 pocket center
+        # Fallback
         cmd.pseudoatom("pocket_center", pos=[0.0, 0.0, 0.0])
         cmd.zoom(f"{obj} within 10 of pocket_center", buffer=1)
 

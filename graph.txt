@@ -1,0 +1,1201 @@
+GitDiagram
+GitHub
+★15.2k
+Validating Mermaid syntax after attempt 1/3...
+Estimated cost: $0.13 USD
+Step 3/3
+
+Explanation:
+
+<explanation> ## 1) Project type + purpose (what the diagram should communicate) This is a **computational chemistry / structural bioinformatics data pipeline** repository that **prepares receptors and ligands for molecular docking** and then **runs docking via GNINA**, with **validation + visualization** tooling and **optional remote execution on Kaggle**. The pipeline is **configuration-driven** via `config.json`, and the repo is organized primarily as **scripts that transform files in `data/`** (PDB/CIF/SDF → aligned/cleaned/prepped artifacts → docking outputs → metrics/plots/renders). So your architecture diagram should read like a **file-based ETL pipeline**: - Inputs: raw receptor structures + raw ligands - Transformations: alignment, cleanup, protonation/tautomer handling, box definition, conversion to docking formats - Execution: GNINA docking (local or Kaggle worker) - Outputs: docked poses, scores, RMSD/metrics, validation reports, rendered visuals --- ## 2) Key structure cues from the tree (what to model as components) ### Primary “domains” in the codebase - **Configuration / Orchestration** - `config.json` (core pipeline control plane) - `scripts/pipeline/local_dispatcher.py` + `scripts/pipeline/local_dispatcher.json` (local orchestration) - `scripts/pipeline/gnina_runner.py` (docking execution wrapper) - `scripts/pipeline/run_validation.py`, `extract_scores.py`, `score_native_rmsd.py` (post-processing/metrics) - **Receptor pipeline** - `scripts/receptor/*` (alignment, stripping, conversion, prep, box definition inputs) - `data/receptors/*` (raw CIF/TXT + aligned PDB + metadata JSON + prepped PDBQT) - **Ligand pipeline** - `scripts/ligand/ligand_prep.py`, `align_sweep.py` - `data/ligands/*.sdf` plus sweep CSVs - **Visualization / human validation** - `scripts/visualization/*` (PyMOL-driven rendering/inspection) - Output visuals are implied (not a dedicated folder, but flows exist) - **Remote/Kaggle execution & artifact movement** - `scripts/kaggle/*` (bootstrap, setup, worker, pull outputs, drive auth/io) - `specs/kaggle_*` + `scripts/pipeline/build_kaggle_push.py` - `flumazenil_6x3u_job.json`, `test_job.json` (job manifests) - **Docs/specs as “design truth”** - `docs/*` (published documentation) - `specs/*` (pipeline design, docking config, validation rationale) ### External tools/libraries that must appear in the diagram - **GNINA** (the docking engine; executed by `gnina_runner.py` / workers) - **RDKit** (ligand reading/writing/transforms) - **OpenMM + PDBFixer** (receptor fixing/structure prep; per README) - **PyMOL** (visual validation & automated rendering) - Optional infra integrations: - **Kaggle runtime** (compute environment) - **Google Drive** (auth + IO via `drive_auth.py`, `drive_io.py`) --- ## 3) What “main components” to draw (decompose aggressively) For maximum accuracy, split into these boxes (even if some are “just scripts”): ### A) Control plane (configuration + job definition) - **Pipeline Config**: `config.json` - **Job Specs**: `*_job.json` (e.g., `flumazenil_6x3u_job.json`, `test_job.json`) - **Environment Definition**: `requirements.txt`, `environment.yml` ### B) Data plane (file stores) - **Raw Receptors Store**: `data/receptors/*.cif`, `*.txt` - **Aligned/Processed Receptors Store**: `data/receptors/*_aligned.pdb`, `*_metadata.json`, `*_aligned.json` - **Prepped Receptors Store**: `data/receptors/prepped/*.pdbqt` - **Raw Ligands Store**: `data/ligands/*.sdf` - **Ligand Sweep/Alignment Artifacts**: `data/ligands/df_*` - **Docking Outputs Store**: `data/output/*` (SDF/PDB, RMSD txt, etc.) ### C) Processing stages (script modules as components) **Receptor stages** - “Receptor Alignment” (`scripts/receptor/align_model_space.py`) - “Strip/Convert” (`strip_and_convert.py`) - “Receptor Prep” (`receptor_prep.py`) → outputs PDBQT - “Box Definition” (`box_definition.py`) → docking search space parameters - “Validation Ligand Extraction” (`extract_validation_ligands.py`) - “Validation Metrics” (`calc_validation_metrics.py`) **Ligand stages** - “Ligand Prep” (`scripts/ligand/ligand_prep.py`) (RDKit + protonation/formatting path) - “Ligand Alignment Sweep” (`align_sweep.py`) (parameter exploration producing sweep artifacts) **Docking + scoring stages** - “GNINA Runner” (`scripts/pipeline/gnina_runner.py`) - “Score Extraction” (`extract_scores.py`) - “Native RMSD Scoring” (`score_native_rmsd.py`) - “Validation Runner” (`run_validation.py`) **Visualization stages** - “PyMOL Visual Checks” (`scripts/visualization/vis_*.py`) - “Render Sweep / Render Single” (`render_sweep.py`, `render_single.py`) ### D) Execution environments (where code runs) - **Local Workstation / Conda Env** (per README) - **Kaggle Worker Runtime** (`scripts/kaggle/worker.py`, `bootstrap.py`, `setup_env.py`) - **Artifact Sync** (Google Drive IO: `drive_io.py` + `pull_outputs.py`) --- ## 4) Relationships + interactions (the arrows you should draw) Model flows primarily as **file transformations** plus a few “control” arrows: ### Core end-to-end flow (happy path) 1. `config.json` + job spec → **Local Dispatcher** (`local_dispatcher.py`) 2. Dispatcher triggers in sequence: - **Receptor pipeline** reads `data/receptors/*.cif|*.pdb` → writes aligned PDB + metadata JSON → writes `prepped/*.pdbqt` - **Ligand pipeline** reads `data/ligands/*.sdf` → writes prepped ligand SDF (and/or aligned sweep artifacts) - **Box definition** reads receptor + ligand context → writes box parameters (likely embedded in job/run context; represent as “Docking Box Params” artifact) 3. **GNINA Runner** consumes: - receptor `.pdbqt` - ligand `.sdf` (or converted equivalent) - box params → produces `data/output/*_out.sdf` + scores/logs 4. **Post-processing** consumes outputs → produces: - RMSD reports (`*_rmsd*.txt`) - validation metrics text files in `data/receptors/*validation*.txt` and/or `data/output/*` 5. **Visualization** consumes intermediate + final artifacts → generates renders (represent as “Rendered Images / Sessions” even if not committed) ### Kaggle/remote branch (alternate execution path) - Dispatcher / build step (`build_kaggle_push.py`) → packages code + job → **Kaggle Kernel** - Kaggle bootstrap/setup (`bootstrap.py`, `setup_env.py`, `setup_dirs.py`, `hardware_check.py`) - Kaggle worker executes GNINA (`worker.py`, legacy `gnina_worker_deprecated.py`) - Outputs synced back: - via **Google Drive** (`drive_auth.py`, `drive_io.py`) - retrieved by `pull_outputs.py` into `data/output/` Draw this as a **parallel execution lane**: “Local GNINA” vs “Kaggle GNINA”, converging at the same outputs store. --- ## 5) Architectural patterns to explicitly annotate - **Config-driven pipeline**: `config.json` as the single source of truth controlling paths/params. - **Batch-oriented, file-based ETL**: every stage reads/writes artifacts in `data/`. - **Separation of concerns by domain**: - `scripts/receptor/*` vs `scripts/ligand/*` vs `scripts/pipeline/*` vs `scripts/visualization/*` vs `scripts/kaggle/*` - **Reproducibility via environment specs**: `environment.yml` / `requirements.txt` - **Validation as first-class**: explicit scripts + stored baseline metrics + alignment validation text files. --- ## 6) How to draw the “best” diagram set (recommend a 3-layer package) For a principal-level diagram that is both accurate and readable, produce **three diagrams** (each derived directly from the tree): ### Diagram 1 — System Context (1 page) **Actors + systems** - Scientist/Engineer (user) - Local machine environment - Kaggle platform (optional) - Google Drive (optional) - External engines: GNINA, PyMOL **Arrows** - “runs pipeline”, “pushes job”, “syncs outputs”, “renders validation” ### Diagram 2 — Container / High-level Architecture (1 page) **Containers = major folders + runtime environments** - `scripts/pipeline` (orchestrator + execution) - `scripts/receptor` (receptor processing) - `scripts/ligand` (ligand processing) - `scripts/visualization` (PyMOL automation) - `scripts/kaggle` (remote execution) - `data/` stores (split into receptors/ligands/output) - External tools (GNINA / PyMOL / RDKit / OpenMM / PDBFixer) Make arrows file-centric: “writes PDBQT”, “reads SDF”, “produces docked SDF”. ### Diagram 3 — Detailed Dataflow (swimlanes) (1–2 pages) Swimlanes: - Receptor lane - Ligand lane - Docking lane - Validation lane - Visualization lane - (Optional) Kaggle lane Every box is a script entrypoint; every arrow names the artifact type (`.cif`, `.pdb`, `.pdbqt`, `.sdf`, `.json`, `.txt`). This third diagram is where you “separate into as many components as possible” without losing traceability. --- ## 7) Concrete labeling + notation rules (to keep it unambiguous) Include these in the diagram legend: ### Component labeling Use: **`<folder>/<script>.py`** as the component title, and a subtitle describing purpose. Example: - `scripts/receptor/receptor_prep.py` - “Fix receptor (PDBFixer/OpenMM), prepare PDBQT for docking” ### Arrow labeling (always) Label arrows with: - **Data artifact**: `PDBQT`, `SDF`, `aligned PDB`, `metadata JSON`, `RMSD report` - **Operation**: “align”, “strip”, “convert”, “dock”, “score”, “render” ### Color/shape coding - **Rectangles**: compute steps (scripts) - **Cylinders**: stores (`data/receptors`, `data/ligands`, `data/output`) - **Hexagons**: external tools/services (GNINA, PyMOL, Kaggle, Google Drive) - Suggested colors: - Receptor steps = one color - Ligand steps = another - Docking/Scoring = another - Validation/Visualization = another - External services = neutral gray --- ## 8) “Checklist” of repo-specific elements you should not miss If any of these are absent from the diagram, it will be incomplete for this project: - `config.json` as the central controller - Distinct receptor vs ligand pipelines - The **dock box definition** step (search space) as a first-class artifact - GNINA as an external execution engine invoked by wrapper scripts - `data/receptors/prepped/*.pdbqt` as a key handoff format - Validation outputs (RMSD, alignment validation, metrics baselines) - PyMOL automation scripts as a parallel “human-in-the-loop validation” toolchain - Optional Kaggle branch + Google Drive IO for remote runs --- ## 9) Suggested diagram text layout (quick template) Top: **Control Plane** - `config.json` → `local_dispatcher.py` (and optional Kaggle packaging) Middle: **Processing** - Receptor pipeline (align → strip/convert → prep → box) - Ligand pipeline (prep → optional sweep/align) - Docking (GNINA runner/local or Kaggle worker) - Post-processing (scores/RMSD/validation) Bottom: **Data Stores** - `data/receptors` (raw/aligned/prepped) - `data/ligands` - `data/output` Right side: **External systems** - GNINA, RDKit, OpenMM/PDBFixer, PyMOL, Kaggle, Google Drive </explanation>
+
+Mapping:
+
+<component_mapping>
+1. Pipeline Config (control plane): config.json
+2. Job Specs / Manifests: flumazenil_6x3u_job.json
+3. Job Specs / Manifests: test_job.json
+4. Environment Definition (Conda): environment.yml
+5. Environment Definition (pip): requirements.txt
+
+6. Local Orchestration / Dispatcher: scripts/pipeline/local_dispatcher.py
+7. Local Dispatcher Config: scripts/pipeline/local_dispatcher.json
+8. GNINA Docking Wrapper / Runner: scripts/pipeline/gnina_runner.py
+9. Validation Runner (post-docking): scripts/pipeline/run_validation.py
+10. Score Extraction (post-docking): scripts/pipeline/extract_scores.py
+11. Native RMSD Scoring: scripts/pipeline/score_native_rmsd.py
+
+12. Receptor Alignment Stage: scripts/receptor/align_model_space.py
+13. Receptor Strip/Convert Stage: scripts/receptor/strip_and_convert.py
+14. Receptor Preparation (PDBQT generation): scripts/receptor/receptor_prep.py
+15. Docking Box Definition Stage: scripts/receptor/box_definition.py
+16. Validation Ligand Extraction (from receptor structures): scripts/receptor/extract_validation_ligands.py
+17. Validation Metrics Computation: scripts/receptor/calc_validation_metrics.py
+
+18. Ligand Preparation Stage: scripts/ligand/ligand_prep.py
+19. Ligand Alignment Sweep Stage: scripts/ligand/align_sweep.py
+20. Ligand Prep Tests: tests/test_ligand_prep.py
+
+21. Visualization / PyMOL Automation (single render): scripts/visualization/render_single.py
+22. Visualization / PyMOL Automation (sweep render): scripts/visualization/render_sweep.py
+23. Visualization (box inspection): scripts/visualization/vis_box.py
+24. Visualization (ligand inspection): scripts/visualization/vis_ligands.py
+25. Visualization (receptor inspection): scripts/visualization/vis_receptor.py
+26. Visualization (results inspection): scripts/visualization/vis_results.py
+
+27. Kaggle Bootstrap: scripts/kaggle/bootstrap.py
+28. Kaggle Environment Setup: scripts/kaggle/setup_env.py
+29. Kaggle Directory Setup: scripts/kaggle/setup_dirs.py
+30. Kaggle Hardware Check: scripts/kaggle/hardware_check.py
+31. Kaggle Worker (GNINA execution lane): scripts/kaggle/worker.py
+32. Kaggle Worker (deprecated): scripts/kaggle/gnina_worker_deprecated.py
+33. Artifact Sync – Google Drive Auth: scripts/kaggle/drive_auth.py
+34. Artifact Sync – Google Drive IO: scripts/kaggle/drive_io.py
+35. Pull Outputs (sync back to repo): scripts/kaggle/pull_outputs.py
+36. Kaggle Kernel Metadata: scripts/kaggle/kernel-metadata.json
+37. Kaggle Repo Cloning Helper: scripts/kaggle/clone_repo.py
+38. Kaggle Packaging/Push Build Step: scripts/pipeline/build_kaggle_push.py
+
+39. Raw Receptors Store: data/receptors
+40. Prepped Receptors Store (PDBQT handoff): data/receptors/prepped
+41. Raw Ligands Store: data/ligands
+42. Ligand Sweep/Alignment Artifacts Store: data/ligands/df_sweep_reach.csv
+43. Ligand Sweep/Alignment Artifacts Store: data/ligands/df_aligned_sweep.sdf
+44. Docking Outputs Store: data/output
+
+45. Docs / Published Documentation: docs
+46. Specs / Design Truth & Rationale: specs
+47. Shared Script Utilities: scripts/utils.py
+</component_mapping>
+
+Mermaid.js diagram:
+
+flowchart TD
+  %% =========================
+  %% Diagram 1 — System Context
+  %% =========================
+
+  U1["Scientist/Engineer"]:::actor
+
+  subgraph C1["Control Plane"]
+    CFG1["Pipeline Config\nconfig.json"]:::control
+    JOB1["Job Manifest\nflumazenil_6x3u_job.json"]:::control
+    JOB2["Job Manifest\ntest_job.json"]:::control
+    ENV1["Conda Environment Spec\nenvironment.yml"]:::control
+    ENV2["Pip Requirements\nrequirements.txt"]:::control
+  end
+
+  subgraph L1["Local Runtime"]
+    LOCAL1["Local Workstation\n(Conda env)"]:::runtime
+    DISP1["Local Orchestrator\nscripts/pipeline/local_dispatcher.py"]:::pipeline
+    DISPCFG1["Dispatcher Config\nscripts/pipeline/local_dispatcher.json"]:::control
+  end
+
+  subgraph RMT1["Optional Remote Runtime"]
+    KAG1{{"Kaggle Runtime"}}:::external
+    GDRV1{{"Google Drive"}}:::external
+    KBUILD1["Kaggle Packaging/Push\nscripts/pipeline/build_kaggle_push.py"]:::pipeline
+    KPULL1["Pull Outputs\nscripts/kaggle/pull_outputs.py"]:::kaggle
+  end
+
+  subgraph EXT1["External Tools"]
+    GNINA1{{"GNINA Docking Engine"}}:::external
+    RDK1{{"RDKit"}}:::external
+    OMM1{{"OpenMM + PDBFixer"}}:::external
+    PYM1{{"PyMOL"}}:::external
+  end
+
+  subgraph DATA1["Data Stores (Repo)"]
+    DR1[("data/receptors/")]:::store
+    DL1[("data/ligands/")]:::store
+    DO1[("data/output/")]:::store
+  end
+
+  U1 -->|"edits config/job"| CFG1
+  U1 -->|"runs"| DISP1
+  CFG1 -->|"controls params/paths"| DISP1
+  JOB1 -->|"selects run inputs"| DISP1
+  JOB2 -->|"selects run inputs"| DISP1
+  ENV1 -->|"reproducible env"| LOCAL1
+  ENV2 -->|"reproducible env"| LOCAL1
+  DISP1 -->|"reads/writes artifacts"| DR1
+  DISP1 -->|"reads/writes artifacts"| DL1
+  DISP1 -->|"writes results"| DO1
+
+  DISP1 -->|"invokes docking"| GNINA1
+  DISP1 -->|"uses"| RDK1
+  DISP1 -->|"uses"| OMM1
+  U1 -->|"visual checks/renders"| PYM1
+
+  DISP1 -->|"optional push job"| KBUILD1
+  KBUILD1 -->|"runs on"| KAG1
+  KAG1 -->|"sync via"| GDRV1
+  GDRV1 -->|"retrieve outputs"| KPULL1
+  KPULL1 -->|"writes back"| DO1
+
+  %% Click Events (mapped)
+  click CFG1 "config.json"
+  click JOB1 "flumazenil_6x3u_job.json"
+  click JOB2 "test_job.json"
+  click ENV1 "environment.yml"
+  click ENV2 "requirements.txt"
+  click DISP1 "scripts/pipeline/local_dispatcher.py"
+  click DISPCFG1 "scripts/pipeline/local_dispatcher.json"
+  click KBUILD1 "scripts/pipeline/build_kaggle_push.py"
+  click KPULL1 "scripts/kaggle/pull_outputs.py"
+  click DR1 "data/receptors"
+  click DL1 "data/ligands"
+  click DO1 "data/output"
+
+  %% Styles
+  classDef actor fill:#0b172a,stroke:#6aa1ff,stroke-width:2px,color:#e9f1ff;
+  classDef control fill:#1f2a44,stroke:#a6c0ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef pipeline fill:#163a59,stroke:#66c2ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef runtime fill:#0f2f2a,stroke:#6ce0c3,stroke-width:1.5px,color:#e9f1ff;
+  classDef store fill:#2a1a0b,stroke:#ffcc80,stroke-width:1.5px,color:#fff2e6;
+  classDef external fill:#2b2b2b,stroke:#bdbdbd,stroke-width:1.5px,color:#f5f5f5;
+  classDef kaggle fill:#3b2a52,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+
+flowchart TD
+  %% =======================================
+  %% Diagram 2 — Container / High-level Arch
+  %% =======================================
+
+  subgraph CP2["Control Plane"]
+    CFG2["config.json\n(Single source of truth)"]:::control
+    J1_2["flumazenil_6x3u_job.json\n(Job spec)"]:::control
+    J2_2["test_job.json\n(Job spec)"]:::control
+    E1_2["environment.yml\n(Conda spec)"]:::control
+    E2_2["requirements.txt\n(Pip spec)"]:::control
+  end
+
+  subgraph S2["Compute Modules (scripts/)"]
+    subgraph SP2["scripts/pipeline"]
+      LD2["local_dispatcher.py\n(orchestrates stages)"]:::pipeline
+      LDC2["local_dispatcher.json\n(dispatch plan)"]:::control
+      GR2["gnina_runner.py\n(docking wrapper)"]:::dock
+      VS2["run_validation.py\n(validation orchestration)"]:::validate
+      XS2["extract_scores.py\n(score parsing)"]:::dock
+      NR2["score_native_rmsd.py\n(native RMSD)"]:::validate
+      BK2["build_kaggle_push.py\n(package+push)"]:::kaggle
+    end
+
+    subgraph SR2["scripts/receptor"]
+      RA2["align_model_space.py\n(receptor alignment)"]:::receptor
+      SC2["strip_and_convert.py\n(strip/convert)"]:::receptor
+      RP2["receptor_prep.py\n(PDBFixer/OpenMM → PDBQT)"]:::receptor
+      BX2["box_definition.py\n(search space box)"]:::receptor
+      EV2["extract_validation_ligands.py\n(validation ligand extraction)"]:::validate
+      CM2["calc_validation_metrics.py\n(validation metrics)"]:::validate
+    end
+
+    subgraph SL2["scripts/ligand"]
+      LP2["ligand_prep.py\n(RDKit prep)"]:::ligand
+      AS2["align_sweep.py\n(parameter sweep)"]:::ligand
+      LT2["tests/test_ligand_prep.py\n(unit tests)"]:::test
+    end
+
+    subgraph SV2["scripts/visualization"]
+      RS2["render_single.py\n(PyMOL render)"]:::viz
+      RW2["render_sweep.py\n(PyMOL render sweep)"]:::viz
+      VB2["vis_box.py\n(inspect box)"]:::viz
+      VL2["vis_ligands.py\n(inspect ligands)"]:::viz
+      VR2["vis_receptor.py\n(inspect receptor)"]:::viz
+      VRES2["vis_results.py\n(inspect docking results)"]:::viz
+    end
+
+    subgraph SK2["scripts/kaggle"]
+      KB2["bootstrap.py\n(kaggle bootstrap)"]:::kaggle
+      KE2["setup_env.py\n(env setup)"]:::kaggle
+      KD2["setup_dirs.py\n(dir setup)"]:::kaggle
+      KH2["hardware_check.py\n(GPU/CPU check)"]:::kaggle
+      KW2["worker.py\n(remote GNINA lane)"]:::kaggle
+      KWD2["gnina_worker_deprecated.py\n(legacy)"]:::kaggle
+      KDA2["drive_auth.py\n(Drive auth)"]:::kaggle
+      KDI2["drive_io.py\n(Drive IO)"]:::kaggle
+      KPO2["pull_outputs.py\n(sync back)"]:::kaggle
+      KMD2["kernel-metadata.json\n(kernel spec)"]:::kaggle
+      KCR2["clone_repo.py\n(repo clone helper)"]:::kaggle
+    end
+
+    UTIL2["scripts/utils.py\n(shared utilities)"]:::util
+  end
+
+  subgraph D2["Data Plane (data/)"]
+    DR2[("data/receptors/\nraw+aligned+metadata")]:::store
+    DRP2[("data/receptors/prepped/\nPDBQT handoff")]:::store
+    DL2[("data/ligands/\nSDF inputs")]:::store
+    DFS2[("data/ligands/df_sweep_reach.csv\n(sweep table)")]:::store
+    DAS2[("data/ligands/df_aligned_sweep.sdf\n(sweep ligands)")]:::store
+    DO2[("data/output/\ndocking outputs+metrics")]:::store
+  end
+
+  subgraph DOC2["Docs / Specs"]
+    DOCS2[("docs/")]:::docs
+    SPECS2[("specs/")]:::docs
+  end
+
+  subgraph EXT2["External Tools / Services"]
+    GN2{{"GNINA"}}:::external
+    RD2{{"RDKit"}}:::external
+    OM2{{"OpenMM + PDBFixer"}}:::external
+    PM2{{"PyMOL"}}:::external
+    KG2{{"Kaggle Runtime"}}:::external
+    GD2{{"Google Drive"}}:::external
+  end
+
+  %% Control wiring
+  CFG2 -->|"drives"| LD2
+  J1_2 -->|"job params"| LD2
+  J2_2 -->|"job params"| LD2
+  E1_2 -->|"env"| LD2
+  E2_2 -->|"env"| LD2
+  LDC2 -->|"dispatch plan"| LD2
+
+  %% Main file-based ETL flows (high level)
+  LD2 -->|"receptor stages"| RA2
+  RA2 -->|"aligned PDB+metadata"| DR2
+  DR2 -->|"inputs"| SC2
+  SC2 -->|"clean PDB"| DR2
+  DR2 -->|"prep"| RP2
+  RP2 -->|"writes PDBQT"| DRP2
+  DR2 -->|"define box"| BX2
+
+  LD2 -->|"ligand stages"| LP2
+  LP2 -->|"reads/writes SDF"| DL2
+  LP2 -->|"optional sweep"| AS2
+  AS2 -->|"writes"| DFS2
+  AS2 -->|"writes"| DAS2
+
+  %% Docking and post-processing
+  DRP2 -->|"PDBQT"| GR2
+  DL2 -->|"SDF"| GR2
+  BX2 -->|"box params"| GR2
+  GR2 -->|"produces outputs"| DO2
+  GR2 -->|"invokes"| GN2
+
+  DO2 -->|"scores"| XS2
+  DO2 -->|"RMSD"| NR2
+  XS2 -->|"writes metrics"| DO2
+  NR2 -->|"writes reports"| DO2
+  LD2 -->|"validation"| VS2
+  VS2 -->|"uses outputs"| DO2
+  DR2 -->|"extract ligands"| EV2
+  EV2 -->|"validation ligands"| DL2
+  DO2 -->|"metrics inputs"| CM2
+  CM2 -->|"writes validation"| DO2
+
+  %% Visualization
+  DO2 -->|"render/inspect"| RS2
+  DO2 -->|"render sweep"| RW2
+  DR2 -->|"inspect"| VR2
+  DL2 -->|"inspect"| VL2
+  BX2 -->|"inspect"| VB2
+  DO2 -->|"inspect"| VRES2
+  RS2 -->|"drives"| PM2
+  RW2 -->|"drives"| PM2
+
+  %% External libs used
+  LP2 -->|"uses"| RD2
+  RP2 -->|"uses"| OM2
+
+  %% Remote branch
+  LD2 -->|"optional remote"| BK2
+  BK2 -->|"runs on"| KG2
+  KG2 -->|"exec lane"| KW2
+  KW2 -->|"invokes"| GN2
+  KW2 -->|"sync artifacts"| KDI2
+  KDA2 -->|"auth"| GD2
+  KDI2 -->|"IO"| GD2
+  GD2 -->|"download"| KPO2
+  KPO2 -->|"writes"| DO2
+  KB2 -->|"bootstraps"| KW2
+  KE2 -->|"sets env"| KW2
+  KD2 -->|"sets dirs"| KW2
+  KH2 -->|"checks hw"| KW2
+  KCR2 -->|"clones"| KW2
+  KMD2 -->|"kernel metadata"| KG2
+
+  %% Docs/specs influence (design truth)
+  SPECS2 -->|"rationale/config guidance"| CFG2
+  DOCS2 -->|"usage"| LD2
+
+  %% Click Events (mapped)
+  click CFG2 "config.json"
+  click J1_2 "flumazenil_6x3u_job.json"
+  click J2_2 "test_job.json"
+  click E1_2 "environment.yml"
+  click E2_2 "requirements.txt"
+
+  click LD2 "scripts/pipeline/local_dispatcher.py"
+  click LDC2 "scripts/pipeline/local_dispatcher.json"
+  click GR2 "scripts/pipeline/gnina_runner.py"
+  click VS2 "scripts/pipeline/run_validation.py"
+  click XS2 "scripts/pipeline/extract_scores.py"
+  click NR2 "scripts/pipeline/score_native_rmsd.py"
+  click BK2 "scripts/pipeline/build_kaggle_push.py"
+
+  click RA2 "scripts/receptor/align_model_space.py"
+  click SC2 "scripts/receptor/strip_and_convert.py"
+  click RP2 "scripts/receptor/receptor_prep.py"
+  click BX2 "scripts/receptor/box_definition.py"
+  click EV2 "scripts/receptor/extract_validation_ligands.py"
+  click CM2 "scripts/receptor/calc_validation_metrics.py"
+
+  click LP2 "scripts/ligand/ligand_prep.py"
+  click AS2 "scripts/ligand/align_sweep.py"
+  click LT2 "tests/test_ligand_prep.py"
+
+  click RS2 "scripts/visualization/render_single.py"
+  click RW2 "scripts/visualization/render_sweep.py"
+  click VB2 "scripts/visualization/vis_box.py"
+  click VL2 "scripts/visualization/vis_ligands.py"
+  click VR2 "scripts/visualization/vis_receptor.py"
+  click VRES2 "scripts/visualization/vis_results.py"
+
+  click KB2 "scripts/kaggle/bootstrap.py"
+  click KE2 "scripts/kaggle/setup_env.py"
+  click KD2 "scripts/kaggle/setup_dirs.py"
+  click KH2 "scripts/kaggle/hardware_check.py"
+  click KW2 "scripts/kaggle/worker.py"
+  click KWD2 "scripts/kaggle/gnina_worker_deprecated.py"
+  click KDA2 "scripts/kaggle/drive_auth.py"
+  click KDI2 "scripts/kaggle/drive_io.py"
+  click KPO2 "scripts/kaggle/pull_outputs.py"
+  click KMD2 "scripts/kaggle/kernel-metadata.json"
+  click KCR2 "scripts/kaggle/clone_repo.py"
+
+  click DR2 "data/receptors"
+  click DRP2 "data/receptors/prepped"
+  click DL2 "data/ligands"
+  click DFS2 "data/ligands/df_sweep_reach.csv"
+  click DAS2 "data/ligands/df_aligned_sweep.sdf"
+  click DO2 "data/output"
+
+  click DOCS2 "docs"
+  click SPECS2 "specs"
+  click UTIL2 "scripts/utils.py"
+
+  %% Styles
+  classDef control fill:#1f2a44,stroke:#a6c0ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef pipeline fill:#163a59,stroke:#66c2ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef receptor fill:#2f4b1c,stroke:#a6e36b,stroke-width:1.5px,color:#f2ffe6;
+  classDef ligand fill:#3f2a10,stroke:#ffb86b,stroke-width:1.5px,color:#fff3e6;
+  classDef dock fill:#3a1e2f,stroke:#ff7aa8,stroke-width:1.5px,color:#ffe6f0;
+  classDef validate fill:#2c1846,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef viz fill:#1a3a3a,stroke:#63e6e2,stroke-width:1.5px,color:#e6ffff;
+  classDef kaggle fill:#3b2a52,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef store fill:#2a1a0b,stroke:#ffcc80,stroke-width:1.5px,color:#fff2e6;
+  classDef external fill:#2b2b2b,stroke:#bdbdbd,stroke-width:1.5px,color:#f5f5f5;
+  classDef docs fill:#2a2a12,stroke:#e6db74,stroke-width:1.5px,color:#fffde6;
+  classDef util fill:#102a43,stroke:#9fb3c8,stroke-width:1.5px,color:#e9f1ff;
+  classDef test fill:#2a1232,stroke:#ffb3e1,stroke-width:1.5px,color:#ffe6f7;
+
+flowchart TD
+  %% =======================================
+  %% Diagram 3 — Detailed Dataflow (swimlanes)
+  %% =======================================
+
+  subgraph LEG3["Legend"]
+    LgA["Rectangle = script/compute step"]:::pipeline
+    LgS[("Cylinder = data store/artifact")]:::store
+    LgE{{"Hexagon = external tool/service"}}:::external
+  end
+
+  subgraph CTRL3["Control & Orchestration Lane"]
+    CFG3["config.json\n(config-driven pipeline)"]:::control
+    J3A["flumazenil_6x3u_job.json\n(job)"]:::control
+    J3B["test_job.json\n(job)"]:::control
+    LD3["scripts/pipeline/local_dispatcher.py\n(sequencing + run context)"]:::pipeline
+    LDC3["scripts/pipeline/local_dispatcher.json\n(dispatch rules)"]:::control
+  end
+
+  subgraph REC3["Receptor Lane (scripts/receptor/*)"]
+    Rraw3[("data/receptors/\nraw CIF/TXT/PDB")]:::store
+    Ralign3["scripts/receptor/align_model_space.py\nalign → model space"]:::receptor
+    Rmeta3[("data/receptors/\naligned PDB + metadata JSON")]:::store
+    Rstrip3["scripts/receptor/strip_and_convert.py\nstrip waters/convert"]:::receptor
+    Rprep3["scripts/receptor/receptor_prep.py\nfix+prep → PDBQT"]:::receptor
+    Rpdbqt3[("data/receptors/prepped/\n*.pdbqt")]:::store
+    Rbox3["scripts/receptor/box_definition.py\ndefine docking box"]:::receptor
+    BoxArt3[("Docking Box Params\n(JSON/CLI args)") ]:::artifact
+    Rexval3["scripts/receptor/extract_validation_ligands.py\nextract validation ligands"]:::validate
+    Rmet3["scripts/receptor/calc_validation_metrics.py\ncompute validation metrics"]:::validate
+  end
+
+  subgraph LIG3["Ligand Lane (scripts/ligand/*)"]
+    Lraw3[("data/ligands/\n*.sdf")]:::store
+    Lprep3["scripts/ligand/ligand_prep.py\nRDKit prep/protonation/format"]:::ligand
+    Lsweep3["scripts/ligand/align_sweep.py\nalignment parameter sweep"]:::ligand
+    Lcsv3[("data/ligands/df_sweep_reach.csv")]:::store
+    Lsdf3[("data/ligands/df_aligned_sweep.sdf")]:::store
+  end
+
+  subgraph DOCK3["Docking Lane (scripts/pipeline/*)"]
+    Gwrap3["scripts/pipeline/gnina_runner.py\nassemble args + run GNINA"]:::dock
+    GNINA3{{"GNINA"}}:::external
+    Dout3[("data/output/\n*_out.sdf + logs")]:::store
+  end
+
+  subgraph POST3["Scoring & Validation Lane (post-docking)"]
+    Xscore3["scripts/pipeline/extract_scores.py\nparse scores"]:::dock
+    Nrmsd3["scripts/pipeline/score_native_rmsd.py\nRMSD vs native"]:::validate
+    Vrun3["scripts/pipeline/run_validation.py\naggregate validation"]:::validate
+    Vrep3[("data/output/\nRMSD reports + metrics")]:::store
+  end
+
+  subgraph VIZ3["Visualization Lane (scripts/visualization/*)"]
+    PYM3{{"PyMOL"}}:::external
+    Vsingle3["scripts/visualization/render_single.py\nrender one pose"]:::viz
+    Vsweep3["scripts/visualization/render_sweep.py\nrender sweep"]:::viz
+    VBox3["scripts/visualization/vis_box.py\ninspect box"]:::viz
+    Vlig3["scripts/visualization/vis_ligands.py\ninspect ligands"]:::viz
+    Vrec3["scripts/visualization/vis_receptor.py\ninspect receptor"]:::viz
+    Vres3["scripts/visualization/vis_results.py\ninspect results"]:::viz
+    Vout3[("Rendered Images / Sessions\n(PNG/PSE)")]:::artifact
+  end
+
+  subgraph REM3["Optional Remote Lane (scripts/kaggle/*)"]
+    Kbuild3["scripts/pipeline/build_kaggle_push.py\npackage+push job"]:::kaggle
+    Kaggle3{{"Kaggle Runtime"}}:::external
+    Kboot3["scripts/kaggle/bootstrap.py"]:::kaggle
+    Kenv3["scripts/kaggle/setup_env.py"]:::kaggle
+    Kdirs3["scripts/kaggle/setup_dirs.py"]:::kaggle
+    Khw3["scripts/kaggle/hardware_check.py"]:::kaggle
+    Kwork3["scripts/kaggle/worker.py\nremote GNINA execution"]:::kaggle
+    KworkD3["scripts/kaggle/gnina_worker_deprecated.py\nlegacy worker"]:::kaggle
+    Kmeta3["scripts/kaggle/kernel-metadata.json"]:::kaggle
+    Kclone3["scripts/kaggle/clone_repo.py"]:::kaggle
+    GDrive3{{"Google Drive"}}:::external
+    Kauth3["scripts/kaggle/drive_auth.py"]:::kaggle
+    Kio3["scripts/kaggle/drive_io.py"]:::kaggle
+    Kpull3["scripts/kaggle/pull_outputs.py\nsync back to data/output"]:::kaggle
+  end
+
+  subgraph SUP3["Utilities / Docs / Specs"]
+    Utl3["scripts/utils.py\nshared helpers"]:::util
+    Docs3[("docs/")]:::docs
+    Specs3[("specs/")]:::docs
+    Req3["requirements.txt"]:::control
+    Env3["environment.yml"]:::control
+    Tlig3["tests/test_ligand_prep.py"]:::test
+    RDKit3{{"RDKit"}}:::external
+    OMM3{{"OpenMM + PDBFixer"}}:::external
+  end
+
+  %% Orchestration -> lanes
+  CFG3 -->|"controls"| LD3
+  J3A -->|"job params"| LD3
+  J3B -->|"job params"| LD3
+  LDC3 -->|"dispatch"| LD3
+  LD3 -->|"run receptor pipeline"| Ralign3
+  LD3 -->|"run ligand pipeline"| Lprep3
+  LD3 -->|"run docking"| Gwrap3
+  LD3 -->|"run validation"| Vrun3
+
+  %% Receptor flow (file-based ETL)
+  Rraw3 -->|"read .cif/.txt/.pdb"| Ralign3
+  Ralign3 -->|"write aligned PDB+metadata"| Rmeta3
+  Rmeta3 -->|"read aligned PDB"| Rstrip3
+  Rstrip3 -->|"write cleaned PDB"| Rmeta3
+  Rmeta3 -->|"read cleaned PDB"| Rprep3
+  Rprep3 -->|"write PDBQT"| Rpdbqt3
+  Rmeta3 -->|"read receptor context"| Rbox3
+  Rbox3 -->|"emit box params"| BoxArt3
+  Rmeta3 -->|"read receptor structures"| Rexval3
+  Rexval3 -->|"write validation ligands (SDF)"| Lraw3
+
+  %% Ligand flow
+  Lraw3 -->|"read SDF"| Lprep3
+  Lprep3 -->|"write prepped SDF"| Lraw3
+  Lprep3 -->|"optional sweep"| Lsweep3
+  Lsweep3 -->|"write sweep table"| Lcsv3
+  Lsweep3 -->|"write aligned sweep SDF"| Lsdf3
+
+  %% Docking (local)
+  Rpdbqt3 -->|"PDBQT"| Gwrap3
+  Lraw3 -->|"Ligand SDF"| Gwrap3
+  BoxArt3 -->|"box params"| Gwrap3
+  Gwrap3 -->|"invoke"| GNINA3
+  GNINA3 -->|"docked poses+scores"| Dout3
+
+  %% Post-processing
+  Dout3 -->|"parse scores"| Xscore3
+  Xscore3 -->|"write metrics"| Vrep3
+  Dout3 -->|"compute RMSD"| Nrmsd3
+  Nrmsd3 -->|"write RMSD reports"| Vrep3
+  Vrun3 -->|"aggregate outputs"| Vrep3
+  Dout3 -->|"metrics inputs"| Rmet3
+  Rmet3 -->|"write validation metrics"| Vrep3
+
+  %% Visualization
+  Rmeta3 -->|"inspect"| Vrec3
+  Lraw3 -->|"inspect"| Vlig3
+  BoxArt3 -->|"inspect"| VBox3
+  Dout3 -->|"inspect"| Vres3
+  Dout3 -->|"render single"| Vsingle3
+  Dout3 -->|"render sweep"| Vsweep3
+  Vsingle3 -->|"drives"| PYM3
+  Vsweep3 -->|"drives"| PYM3
+  PYM3 -->|"outputs"| Vout3
+
+  %% External library usage
+  Lprep3 -->|"uses"| RDKit3
+  Lsweep3 -->|"uses"| RDKit3
+  Rprep3 -->|"uses"| OMM3
+
+  %% Optional remote branch
+  LD3 -->|"optional remote execution"| Kbuild3
+  Kbuild3 -->|"push job to"| Kaggle3
+  Kaggle3 -->|"bootstrap"| Kboot3
+  Kboot3 -->|"setup"| Kenv3
+  Kenv3 -->|"setup"| Kdirs3
+  Kdirs3 -->|"check"| Khw3
+  Khw3 -->|"run worker"| Kwork3
+  Kclone3 -->|"clone repo"| Kwork3
+  Kmeta3 -->|"kernel config"| Kaggle3
+  Kwork3 -->|"invoke"| GNINA3
+  Kwork3 -->|"sync outputs"| Kio3
+  Kauth3 -->|"auth"| GDrive3
+  Kio3 -->|"IO"| GDrive3
+  GDrive3 -->|"download"| Kpull3
+  Kpull3 -->|"write outputs"| Dout3
+
+  %% Support lane connections
+  Specs3 -->|"guides"| CFG3
+  Docs3 -->|"usage"| LD3
+  Req3 -->|"pins deps"| LD3
+  Env3 -->|"pins deps"| LD3
+  Tlig3 -->|"tests"| Lprep3
+  Utl3 -->|"helpers"| Ralign3
+  Utl3 -->|"helpers"| Lprep3
+  Utl3 -->|"helpers"| Gwrap3
+
+  %% Click Events (mapped)
+  click CFG3 "config.json"
+  click J3A "flumazenil_6x3u_job.json"
+  click J3B "test_job.json"
+  click Env3 "environment.yml"
+  click Req3 "requirements.txt"
+  click LD3 "scripts/pipeline/local_dispatcher.py"
+  click LDC3 "scripts/pipeline/local_dispatcher.json"
+  click Gwrap3 "scripts/pipeline/gnina_runner.py"
+  click Vrun3 "scripts/pipeline/run_validation.py"
+  click Xscore3 "scripts/pipeline/extract_scores.py"
+  click Nrmsd3 "scripts/pipeline/score_native_rmsd.py"
+  click Ralign3 "scripts/receptor/align_model_space.py"
+  click Rstrip3 "scripts/receptor/strip_and_convert.py"
+  click Rprep3 "scripts/receptor/receptor_prep.py"
+  click Rbox3 "scripts/receptor/box_definition.py"
+  click Rexval3 "scripts/receptor/extract_validation_ligands.py"
+  click Rmet3 "scripts/receptor/calc_validation_metrics.py"
+  click Lprep3 "scripts/ligand/ligand_prep.py"
+  click Lsweep3 "scripts/ligand/align_sweep.py"
+  click Tlig3 "tests/test_ligand_prep.py"
+  click Vsingle3 "scripts/visualization/render_single.py"
+  click Vsweep3 "scripts/visualization/render_sweep.py"
+  click VBox3 "scripts/visualization/vis_box.py"
+  click Vlig3 "scripts/visualization/vis_ligands.py"
+  click Vrec3 "scripts/visualization/vis_receptor.py"
+  click Vres3 "scripts/visualization/vis_results.py"
+  click Kboot3 "scripts/kaggle/bootstrap.py"
+  click Kenv3 "scripts/kaggle/setup_env.py"
+  click Kdirs3 "scripts/kaggle/setup_dirs.py"
+  click Khw3 "scripts/kaggle/hardware_check.py"
+  click Kwork3 "scripts/kaggle/worker.py"
+  click KworkD3 "scripts/kaggle/gnina_worker_deprecated.py"
+  click Kauth3 "scripts/kaggle/drive_auth.py"
+  click Kio3 "scripts/kaggle/drive_io.py"
+  click Kpull3 "scripts/kaggle/pull_outputs.py"
+  click Kmeta3 "scripts/kaggle/kernel-metadata.json"
+  click Kclone3 "scripts/kaggle/clone_repo.py"
+  click Kbuild3 "scripts/pipeline/build_kaggle_push.py"
+  click Rraw3 "data/receptors"
+  click Rpdbqt3 "data/receptors/prepped"
+  click Lraw3 "data/ligands"
+  click Lcsv3 "data/ligands/df_sweep_reach.csv"
+  click Lsdf3 "data/ligands/df_aligned_sweep.sdf"
+  click Dout3 "data/output"
+  click Docs3 "docs"
+  click Specs3 "specs"
+  click Utl3 "scripts/utils.py"
+
+  %% Styles
+  classDef control fill:#1f2a44,stroke:#a6c0ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef pipeline fill:#163a59,stroke:#66c2ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef receptor fill:#2f4b1c,stroke:#a6e36b,stroke-width:1.5px,color:#f2ffe6;
+  classDef ligand fill:#3f2a10,stroke:#ffb86b,stroke-width:1.5px,color:#fff3e6;
+  classDef dock fill:#3a1e2f,stroke:#ff7aa8,stroke-width:1.5px,color:#ffe6f0;
+  classDef validate fill:#2c1846,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef viz fill:#1a3a3a,stroke:#63e6e2,stroke-width:1.5px,color:#e6ffff;
+  classDef kaggle fill:#3b2a52,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef store fill:#2a1a0b,stroke:#ffcc80,stroke-width:1.5px,color:#fff2e6;
+  classDef artifact fill:#2a0f1f,stroke:#ffb3c8,stroke-width:1.5px,color:#ffe6ef;
+  classDef external fill:#2b2b2b,stroke:#bdbdbd,stroke-width:1.5px,color:#f5f5f5;
+  classDef docs fill:#2a2a12,stroke:#e6db74,stroke-width:1.5px,color:#fffde6;
+  classDef util fill:#102a43,stroke:#9fb3c8,stroke-width:1.5px,color:#e9f1ff;
+  classDef test fill:#2a1232,stroke:#ffb3e1,stroke-width:1.5px,color:#ffe6f7;
+
+Syntax Repair Loop
+
+Attempt 1/3
+
+Validating Mermaid syntax after attempt 1/3...
+
+Candidate Mermaid fix (streaming)
+
+flowchart TD
+  %% =========================
+  %% Diagram 1 — System Context
+  %% =========================
+  subgraph DIAG1["Diagram 1 — System Context"]
+    direction TB
+
+    U1["Scientist/Engineer"]:::actor
+
+    subgraph C1["Control Plane"]
+      direction TB
+      CFG1["Pipeline Config\nconfig.json"]:::control
+      JOB1["Job Manifest\nflumazenil_6x3u_job.json"]:::control
+      JOB2["Job Manifest\ntest_job.json"]:::control
+      ENV1["Conda Environment Spec\nenvironment.yml"]:::control
+      ENV2["Pip Requirements\nrequirements.txt"]:::control
+    end
+
+    subgraph L1["Local Runtime"]
+      direction TB
+      LOCAL1["Local Workstation\n(Conda env)"]:::runtime
+      DISP1["Local Orchestrator\nscripts/pipeline/local_dispatcher.py"]:::pipeline
+      DISPCFG1["Dispatcher Config\nscripts/pipeline/local_dispatcher.json"]:::control
+    end
+
+    subgraph RMT1["Optional Remote Runtime"]
+      direction TB
+      KAG1{{"Kaggle Runtime"}}:::external
+      GDRV1{{"Google Drive"}}:::external
+      KBUILD1["Kaggle Packaging/Push\nscripts/pipeline/build_kaggle_push.py"]:::pipeline
+      KPULL1["Pull Outputs\nscripts/kaggle/pull_outputs.py"]:::kaggle
+    end
+
+    subgraph EXT1["External Tools"]
+      direction TB
+      GNINA1{{"GNINA Docking Engine"}}:::external
+      RDK1{{"RDKit"}}:::external
+      OMM1{{"OpenMM + PDBFixer"}}:::external
+      PYM1{{"PyMOL"}}:::external
+    end
+
+    subgraph DATA1["Data Stores (Repo)"]
+      direction TB
+      DR1[("data/receptors/")]:::store
+      DL1[("data/ligands/")]:::store
+      DO1[("data/output/")]:::store
+    end
+
+    U1 -->|"edits config/job"| CFG1
+    U1 -->|"runs"| DISP1
+    CFG1 -->|"controls params/paths"| DISP1
+    JOB1 -->|"selects run inputs"| DISP1
+    JOB2 -->|"selects run inputs"| DISP1
+    ENV1 -->|"reproducible env"| LOCAL1
+    ENV2 -->|"reproducible env"| LOCAL1
+    DISP1 -->|"reads/writes artifacts"| DR1
+    DISP1 -->|"reads/writes artifacts"| DL1
+    DISP1 -->|"writes results"| DO1
+
+    DISP1 -->|"invokes docking"| GNINA1
+    DISP1 -->|"uses"| RDK1
+    DISP1 -->|"uses"| OMM1
+    U1 -->|"visual checks/renders"| PYM1
+
+    DISP1 -->|"optional push job"| KBUILD1
+    KBUILD1 -->|"runs on"| KAG1
+    KAG1 -->|"sync via"| GDRV1
+    GDRV1 -->|"retrieve outputs"| KPULL1
+    KPULL1 -->|"writes back"| DO1
+  end
+
+  %% =======================================
+  %% Diagram 2 — Container / High-level Arch
+  %% =======================================
+  subgraph DIAG2["Diagram 2 — Container / High-level Arch"]
+    direction TB
+
+    subgraph CP2["Control Plane"]
+      direction TB
+      CFG2["config.json\n(Single source of truth)"]:::control
+      J1_2["flumazenil_6x3u_job.json\n(Job spec)"]:::control
+      J2_2["test_job.json\n(Job spec)"]:::control
+      E1_2["environment.yml\n(Conda spec)"]:::control
+      E2_2["requirements.txt\n(Pip spec)"]:::control
+    end
+
+    subgraph S2["Compute Modules (scripts/)"]
+      direction TB
+
+      subgraph SP2["scripts/pipeline"]
+        direction TB
+        LD2["local_dispatcher.py\n(orchestrates stages)"]:::pipeline
+        LDC2["local_dispatcher.json\n(dispatch plan)"]:::control
+        GR2["gnina_runner.py\n(docking wrapper)"]:::dock
+        VS2["run_validation.py\n(validation orchestration)"]:::validate
+        XS2["extract_scores.py\n(score parsing)"]:::dock
+        NR2["score_native_rmsd.py\n(native RMSD)"]:::validate
+        BK2["build_kaggle_push.py\n(package+push)"]:::kaggle
+      end
+
+      subgraph SR2["scripts/receptor"]
+        direction TB
+        RA2["align_model_space.py\n(receptor alignment)"]:::receptor
+        SC2["strip_and_convert.py\n(strip/convert)"]:::receptor
+        RP2["receptor_prep.py\n(PDBFixer/OpenMM → PDBQT)"]:::receptor
+        BX2["box_definition.py\n(search space box)"]:::receptor
+        EV2["extract_validation_ligands.py\n(validation ligand extraction)"]:::validate
+        CM2["calc_validation_metrics.py\n(validation metrics)"]:::validate
+      end
+
+      subgraph SL2["scripts/ligand"]
+        direction TB
+        LP2["ligand_prep.py\n(RDKit prep)"]:::ligand
+        AS2["align_sweep.py\n(parameter sweep)"]:::ligand
+        LT2["tests/test_ligand_prep.py\n(unit tests)"]:::test
+      end
+
+      subgraph SV2["scripts/visualization"]
+        direction TB
+        RS2["render_single.py\n(PyMOL render)"]:::viz
+        RW2["render_sweep.py\n(PyMOL render sweep)"]:::viz
+        VB2["vis_box.py\n(inspect box)"]:::viz
+        VL2["vis_ligands.py\n(inspect ligands)"]:::viz
+        VR2["vis_receptor.py\n(inspect receptor)"]:::viz
+        VRES2["vis_results.py\n(inspect docking results)"]:::viz
+      end
+
+      subgraph SK2["scripts/kaggle"]
+        direction TB
+        KB2["bootstrap.py\n(kaggle bootstrap)"]:::kaggle
+        KE2["setup_env.py\n(env setup)"]:::kaggle
+        KD2["setup_dirs.py\n(dir setup)"]:::kaggle
+        KH2["hardware_check.py\n(GPU/CPU check)"]:::kaggle
+        KW2["worker.py\n(remote GNINA lane)"]:::kaggle
+        KWD2["gnina_worker_deprecated.py\n(legacy)"]:::kaggle
+        KDA2["drive_auth.py\n(Drive auth)"]:::kaggle
+        KDI2["drive_io.py\n(Drive IO)"]:::kaggle
+        KPO2["pull_outputs.py\n(sync back)"]:::kaggle
+        KMD2["kernel-metadata.json\n(kernel spec)"]:::kaggle
+        KCR2["clone_repo.py\n(repo clone helper)"]:::kaggle
+      end
+
+      UTIL2["scripts/utils.py\n(shared utilities)"]:::util
+    end
+
+    subgraph D2["Data Plane (data/)"]
+      direction TB
+      DR2[("data/receptors/\nraw+aligned+metadata")]:::store
+      DRP2[("data/receptors/prepped/\nPDBQT handoff")]:::store
+      DL2[("data/ligands/\nSDF inputs")]:::store
+      DFS2[("data/ligands/df_sweep_reach.csv\n(sweep table)")]:::store
+      DAS2[("data/ligands/df_aligned_sweep.sdf\n(sweep ligands)")]:::store
+      DO2[("data/output/\ndocking outputs+metrics")]:::store
+    end
+
+    subgraph DOC2["Docs / Specs"]
+      direction TB
+      DOCS2[("docs/")]:::docs
+      SPECS2[("specs/")]:::docs
+    end
+
+    subgraph EXT2["External Tools / Services"]
+      direction TB
+      GN2{{"GNINA"}}:::external
+      RD2{{"RDKit"}}:::external
+      OM2{{"OpenMM + PDBFixer"}}:::external
+      PM2{{"PyMOL"}}:::external
+      KG2{{"Kaggle Runtime"}}:::external
+      GD2{{"Google Drive"}}:::external
+    end
+
+    CFG2 -->|"drives"| LD2
+    J1_2 -->|"job params"| LD2
+    J2_2 -->|"job params"| LD2
+    E1_2 -->|"env"| LD2
+    E2_2 -->|"env"| LD2
+    LDC2 -->|"dispatch plan"| LD2
+
+    LD2 -->|"receptor stages"| RA2
+    RA2 -->|"aligned PDB+metadata"| DR2
+    DR2 -->|"inputs"| SC2
+    SC2 -->|"clean PDB"| DR2
+    DR2 -->|"prep"| RP2
+    RP2 -->|"writes PDBQT"| DRP2
+    DR2 -->|"define box"| BX2
+
+    LD2 -->|"ligand stages"| LP2
+    LP2 -->|"reads/writes SDF"| DL2
+    LP2 -->|"optional sweep"| AS2
+    AS2 -->|"writes"| DFS2
+    AS2 -->|"writes"| DAS2
+
+    DRP2 -->|"PDBQT"| GR2
+    DL2 -->|"SDF"| GR2
+    BX2 -->|"box params"| GR2
+    GR2 -->|"produces outputs"| DO2
+    GR2 -->|"invokes"| GN2
+
+    DO2 -->|"scores"| XS2
+    DO2 -->|"RMSD"| NR2
+    XS2 -->|"writes metrics"| DO2
+    NR2 -->|"writes reports"| DO2
+    LD2 -->|"validation"| VS2
+    VS2 -->|"uses outputs"| DO2
+    DR2 -->|"extract ligands"| EV2
+    EV2 -->|"validation ligands"| DL2
+    DO2 -->|"metrics inputs"| CM2
+    CM2 -->|"writes validation"| DO2
+
+    DO2 -->|"render/inspect"| RS2
+    DO2 -->|"render sweep"| RW2
+    DR2 -->|"inspect"| VR2
+    DL2 -->|"inspect"| VL2
+    BX2 -->|"inspect"| VB2
+    DO2 -->|"inspect"| VRES2
+    RS2 -->|"drives"| PM2
+    RW2 -->|"drives"| PM2
+
+    LP2 -->|"uses"| RD2
+    RP2 -->|"uses"| OM2
+
+    LD2 -->|"optional remote"| BK2
+    BK2 -->|"runs on"| KG2
+    KG2 -->|"exec lane"| KW2
+    KW2 -->|"invokes"| GN2
+    KW2 -->|"sync artifacts"| KDI2
+    KDA2 -->|"auth"| GD2
+    KDI2 -->|"IO"| GD2
+    GD2 -->|"download"| KPO2
+    KPO2 -->|"writes"| DO2
+    KB2 -->|"bootstraps"| KW2
+    KE2 -->|"sets env"| KW2
+    KD2 -->|"sets dirs"| KW2
+    KH2 -->|"checks hw"| KW2
+    KCR2 -->|"clones"| KW2
+    KMD2 -->|"kernel metadata"| KG2
+
+    SPECS2 -->|"rationale/config guidance"| CFG2
+    DOCS2 -->|"usage"| LD2
+  end
+
+  %% =======================================
+  %% Diagram 3 — Detailed Dataflow (swimlanes)
+  %% =======================================
+  subgraph DIAG3["Diagram 3 — Detailed Dataflow (swimlanes)"]
+    direction TB
+
+    subgraph LEG3["Legend"]
+      direction TB
+      LgA["Rectangle = script/compute step"]:::pipeline
+      LgS[("Cylinder = data store/artifact")]:::store
+      LgE{{"Hexagon = external tool/service"}}:::external
+    end
+
+    subgraph CTRL3["Control & Orchestration Lane"]
+      direction TB
+      CFG3["config.json\n(config-driven pipeline)"]:::control
+      J3A["flumazenil_6x3u_job.json\n(job)"]:::control
+      J3B["test_job.json\n(job)"]:::control
+      LD3["scripts/pipeline/local_dispatcher.py\n(sequencing + run context)"]:::pipeline
+      LDC3["scripts/pipeline/local_dispatcher.json\n(dispatch rules)"]:::control
+    end
+
+    subgraph REC3["Receptor Lane (scripts/receptor/*)"]
+      direction TB
+      Rraw3[("data/receptors/\nraw CIF/TXT/PDB")]:::store
+      Ralign3["scripts/receptor/align_model_space.py\nalign → model space"]:::receptor
+      Rmeta3[("data/receptors/\naligned PDB + metadata JSON")]:::store
+      Rstrip3["scripts/receptor/strip_and_convert.py\nstrip waters/convert"]:::receptor
+      Rprep3["scripts/receptor/receptor_prep.py\nfix+prep → PDBQT"]:::receptor
+      Rpdbqt3[("data/receptors/prepped/\n*.pdbqt")]:::store
+      Rbox3["scripts/receptor/box_definition.py\ndefine docking box"]:::receptor
+      BoxArt3[("Docking Box Params\n(JSON/CLI args)")]:::artifact
+      Rexval3["scripts/receptor/extract_validation_ligands.py\nextract validation ligands"]:::validate
+      Rmet3["scripts/receptor/calc_validation_metrics.py\ncompute validation metrics"]:::validate
+    end
+
+    subgraph LIG3["Ligand Lane (scripts/ligand/*)"]
+      direction TB
+      Lraw3[("data/ligands/\n*.sdf")]:::store
+      Lprep3["scripts/ligand/ligand_prep.py\nRDKit prep/protonation/format"]:::ligand
+      Lsweep3["scripts/ligand/align_sweep.py\nalignment parameter sweep"]:::ligand
+      Lcsv3[("data/ligands/df_sweep_reach.csv")]:::store
+      Lsdf3[("data/ligands/df_aligned_sweep.sdf")]:::store
+    end
+
+    subgraph DOCK3["Docking Lane (scripts/pipeline/*)"]
+      direction TB
+      Gwrap3["scripts/pipeline/gnina_runner.py\nassemble args + run GNINA"]:::dock
+      GNINA3{{"GNINA"}}:::external
+      Dout3[("data/output/\n*_out.sdf + logs")]:::store
+    end
+
+    subgraph POST3["Scoring & Validation Lane (post-docking)"]
+      direction TB
+      Xscore3["scripts/pipeline/extract_scores.py\nparse scores"]:::dock
+      Nrmsd3["scripts/pipeline/score_native_rmsd.py\nRMSD vs native"]:::validate
+      Vrun3["scripts/pipeline/run_validation.py\naggregate validation"]:::validate
+      Vrep3[("data/output/\nRMSD reports + metrics")]:::store
+    end
+
+    subgraph VIZ3["Visualization Lane (scripts/visualization/*)"]
+      direction TB
+      PYM3{{"PyMOL"}}:::external
+      Vsingle3["scripts/visualization/render_single.py\nrender one pose"]:::viz
+      Vsweep3["scripts/visualization/render_sweep.py\nrender sweep"]:::viz
+      VBox3["scripts/visualization/vis_box.py\ninspect box"]:::viz
+      Vlig3["scripts/visualization/vis_ligands.py\ninspect ligands"]:::viz
+      Vrec3["scripts/visualization/vis_receptor.py\ninspect receptor"]:::viz
+      Vres3["scripts/visualization/vis_results.py\ninspect results"]:::viz
+      Vout3[("Rendered Images / Sessions\n(PNG/PSE)")]:::artifact
+    end
+
+    subgraph REM3["Optional Remote Lane (scripts/kaggle/*)"]
+      direction TB
+      Kbuild3["scripts/pipeline/build_kaggle_push.py\npackage+push job"]:::kaggle
+      Kaggle3{{"Kaggle Runtime"}}:::external
+      Kboot3["scripts/kaggle/bootstrap.py"]:::kaggle
+      Kenv3["scripts/kaggle/setup_env.py"]:::kaggle
+      Kdirs3["scripts/kaggle/setup_dirs.py"]:::kaggle
+      Khw3["scripts/kaggle/hardware_check.py"]:::kaggle
+      Kwork3["scripts/kaggle/worker.py\nremote GNINA execution"]:::kaggle
+      KworkD3["scripts/kaggle/gnina_worker_deprecated.py\nlegacy worker"]:::kaggle
+      Kmeta3["scripts/kaggle/kernel-metadata.json"]:::kaggle
+      Kclone3["scripts/kaggle/clone_repo.py"]:::kaggle
+      GDrive3{{"Google Drive"}}:::external
+      Kauth3["scripts/kaggle/drive_auth.py"]:::kaggle
+      Kio3["scripts/kaggle/drive_io.py"]:::kaggle
+      Kpull3["scripts/kaggle/pull_outputs.py\nsync back to data/output"]:::kaggle
+    end
+
+    subgraph SUP3["Utilities / Docs / Specs"]
+      direction TB
+      Utl3["scripts/utils.py\nshared helpers"]:::util
+      Docs3[("docs/")]:::docs
+      Specs3[("specs/")]:::docs
+      Req3["requirements.txt"]:::control
+      Env3["environment.yml"]:::control
+      Tlig3["tests/test_ligand_prep.py"]:::test
+      RDKit3{{"RDKit"}}:::external
+      OMM3{{"OpenMM + PDBFixer"}}:::external
+    end
+
+    CFG3 -->|"controls"| LD3
+    J3A -->|"job params"| LD3
+    J3B -->|"job params"| LD3
+    LDC3 -->|"dispatch"| LD3
+    LD3 -->|"run receptor pipeline"| Ralign3
+    LD3 -->|"run ligand pipeline"| Lprep3
+    LD3 -->|"run docking"| Gwrap3
+    LD3 -->|"run validation"| Vrun3
+
+    Rraw3 -->|"read .cif/.txt/.pdb"| Ralign3
+    Ralign3 -->|"write aligned PDB+metadata"| Rmeta3
+    Rmeta3 -->|"read aligned PDB"| Rstrip3
+    Rstrip3 -->|"write cleaned PDB"| Rmeta3
+    Rmeta3 -->|"read cleaned PDB"| Rprep3
+    Rprep3 -->|"write PDBQT"| Rpdbqt3
+    Rmeta3 -->|"read receptor context"| Rbox3
+    Rbox3 -->|"emit box params"| BoxArt3
+    Rmeta3 -->|"read receptor structures"| Rexval3
+    Rexval3 -->|"write validation ligands (SDF)"| Lraw3
+
+    Lraw3 -->|"read SDF"| Lprep3
+    Lprep3 -->|"write prepped SDF"| Lraw3
+    Lprep3 -->|"optional sweep"| Lsweep3
+    Lsweep3 -->|"write sweep table"| Lcsv3
+    Lsweep3 -->|"write aligned sweep SDF"| Lsdf3
+
+    Rpdbqt3 -->|"PDBQT"| Gwrap3
+    Lraw3 -->|"Ligand SDF"| Gwrap3
+    BoxArt3 -->|"box params"| Gwrap3
+    Gwrap3 -->|"invoke"| GNINA3
+    GNINA3 -->|"docked poses+scores"| Dout3
+
+    Dout3 -->|"parse scores"| Xscore3
+    Xscore3 -->|"write metrics"| Vrep3
+    Dout3 -->|"compute RMSD"| Nrmsd3
+    Nrmsd3 -->|"write RMSD reports"| Vrep3
+    Vrun3 -->|"aggregate outputs"| Vrep3
+    Dout3 -->|"metrics inputs"| Rmet3
+    Rmet3 -->|"write validation metrics"| Vrep3
+
+    Rmeta3 -->|"inspect"| Vrec3
+    Lraw3 -->|"inspect"| Vlig3
+    BoxArt3 -->|"inspect"| VBox3
+    Dout3 -->|"inspect"| Vres3
+    Dout3 -->|"render single"| Vsingle3
+    Dout3 -->|"render sweep"| Vsweep3
+    Vsingle3 -->|"drives"| PYM3
+    Vsweep3 -->|"drives"| PYM3
+    PYM3 -->|"outputs"| Vout3
+
+    Lprep3 -->|"uses"| RDKit3
+    Lsweep3 -->|"uses"| RDKit3
+    Rprep3 -->|"uses"| OMM3
+
+    LD3 -->|"optional remote execution"| Kbuild3
+    Kbuild3 -->|"push job to"| Kaggle3
+    Kaggle3 -->|"bootstrap"| Kboot3
+    Kboot3 -->|"setup"| Kenv3
+    Kenv3 -->|"setup"| Kdirs3
+    Kdirs3 -->|"check"| Khw3
+    Khw3 -->|"run worker"| Kwork3
+    Kclone3 -->|"clone repo"| Kwork3
+    Kmeta3 -->|"kernel config"| Kaggle3
+    Kwork3 -->|"invoke"| GNINA3
+    Kwork3 -->|"sync outputs"| Kio3
+    Kauth3 -->|"auth"| GDrive3
+    Kio3 -->|"IO"| GDrive3
+    GDrive3 -->|"download"| Kpull3
+    Kpull3 -->|"write outputs"| Dout3
+
+    Specs3 -->|"guides"| CFG3
+    Docs3 -->|"usage"| LD3
+    Req3 -->|"pins deps"| LD3
+    Env3 -->|"pins deps"| LD3
+    Tlig3 -->|"tests"| Lprep3
+    Utl3 -->|"helpers"| Ralign3
+    Utl3 -->|"helpers"| Lprep3
+    Utl3 -->|"helpers"| Gwrap3
+  end
+
+  %% Click Events (mapped) — Diagram 1
+  click CFG1 "config.json"
+  click JOB1 "flumazenil_6x3u_job.json"
+  click JOB2 "test_job.json"
+  click ENV1 "environment.yml"
+  click ENV2 "requirements.txt"
+  click DISP1 "scripts/pipeline/local_dispatcher.py"
+  click DISPCFG1 "scripts/pipeline/local_dispatcher.json"
+  click KBUILD1 "scripts/pipeline/build_kaggle_push.py"
+  click KPULL1 "scripts/kaggle/pull_outputs.py"
+  click DR1 "data/receptors"
+  click DL1 "data/ligands"
+  click DO1 "data/output"
+
+  %% Click Events (mapped) — Diagram 2
+  click CFG2 "config.json"
+  click J1_2 "flumazenil_6x3u_job.json"
+  click J2_2 "test_job.json"
+  click E1_2 "environment.yml"
+  click E2_2 "requirements.txt"
+  click LD2 "scripts/pipeline/local_dispatcher.py"
+  click LDC2 "scripts/pipeline/local_dispatcher.json"
+  click GR2 "scripts/pipeline/gnina_runner.py"
+  click VS2 "scripts/pipeline/run_validation.py"
+  click XS2 "scripts/pipeline/extract_scores.py"
+  click NR2 "scripts/pipeline/score_native_rmsd.py"
+  click BK2 "scripts/pipeline/build_kaggle_push.py"
+  click RA2 "scripts/receptor/align_model_space.py"
+  click SC2 "scripts/receptor/strip_and_convert.py"
+  click RP2 "scripts/receptor/receptor_prep.py"
+  click BX2 "scripts/receptor/box_definition.py"
+  click EV2 "scripts/receptor/extract_validation_ligands.py"
+  click CM2 "scripts/receptor/calc_validation_metrics.py"
+  click LP2 "scripts/ligand/ligand_prep.py"
+  click AS2 "scripts/ligand/align_sweep.py"
+  click LT2 "tests/test_ligand_prep.py"
+  click RS2 "scripts/visualization/render_single.py"
+  click RW2 "scripts/visualization/render_sweep.py"
+  click VB2 "scripts/visualization/vis_box.py"
+  click VL2 "scripts/visualization/vis_ligands.py"
+  click VR2 "scripts/visualization/vis_receptor.py"
+  click VRES2 "scripts/visualization/vis_results.py"
+  click KB2 "scripts/kaggle/bootstrap.py"
+  click KE2 "scripts/kaggle/setup_env.py"
+  click KD2 "scripts/kaggle/setup_dirs.py"
+  click KH2 "scripts/kaggle/hardware_check.py"
+  click KW2 "scripts/kaggle/worker.py"
+  click KWD2 "scripts/kaggle/gnina_worker_deprecated.py"
+  click KDA2 "scripts/kaggle/drive_auth.py"
+  click KDI2 "scripts/kaggle/drive_io.py"
+  click KPO2 "scripts/kaggle/pull_outputs.py"
+  click KMD2 "scripts/kaggle/kernel-metadata.json"
+  click KCR2 "scripts/kaggle/clone_repo.py"
+  click DR2 "data/receptors"
+  click DRP2 "data/receptors/prepped"
+  click DL2 "data/ligands"
+  click DFS2 "data/ligands/df_sweep_reach.csv"
+  click DAS2 "data/ligands/df_aligned_sweep.sdf"
+  click DO2 "data/output"
+  click DOCS2 "docs"
+  click SPECS2 "specs"
+  click UTIL2 "scripts/utils.py"
+
+  %% Click Events (mapped) — Diagram 3
+  click CFG3 "config.json"
+  click J3A "flumazenil_6x3u_job.json"
+  click J3B "test_job.json"
+  click Env3 "environment.yml"
+  click Req3 "requirements.txt"
+  click LD3 "scripts/pipeline/local_dispatcher.py"
+  click LDC3 "scripts/pipeline/local_dispatcher.json"
+  click Gwrap3 "scripts/pipeline/gnina_runner.py"
+  click Vrun3 "scripts/pipeline/run_validation.py"
+  click Xscore3 "scripts/pipeline/extract_scores.py"
+  click Nrmsd3 "scripts/pipeline/score_native_rmsd.py"
+  click Ralign3 "scripts/receptor/align_model_space.py"
+  click Rstrip3 "scripts/receptor/strip_and_convert.py"
+  click Rprep3 "scripts/receptor/receptor_prep.py"
+  click Rbox3 "scripts/receptor/box_definition.py"
+  click Rexval3 "scripts/receptor/extract_validation_ligands.py"
+  click Rmet3 "scripts/receptor/calc_validation_metrics.py"
+  click Lprep3 "scripts/ligand/ligand_prep.py"
+  click Lsweep3 "scripts/ligand/align_sweep.py"
+  click Tlig3 "tests/test_ligand_prep.py"
+  click Vsingle3 "scripts/visualization/render_single.py"
+  click Vsweep3 "scripts/visualization/render_sweep.py"
+  click VBox3 "scripts/visualization/vis_box.py"
+  click Vlig3 "scripts/visualization/vis_ligands.py"
+  click Vrec3 "scripts/visualization/vis_receptor.py"
+  click Vres3 "scripts/visualization/vis_results.py"
+  click Kboot3 "scripts/kaggle/bootstrap.py"
+  click Kenv3 "scripts/kaggle/setup_env.py"
+  click Kdirs3 "scripts/kaggle/setup_dirs.py"
+  click Khw3 "scripts/kaggle/hardware_check.py"
+  click Kwork3 "scripts/kaggle/worker.py"
+  click KworkD3 "scripts/kaggle/gnina_worker_deprecated.py"
+  click Kauth3 "scripts/kaggle/drive_auth.py"
+  click Kio3 "scripts/kaggle/drive_io.py"
+  click Kpull3 "scripts/kaggle/pull_outputs.py"
+  click Kmeta3 "scripts/kaggle/kernel-metadata.json"
+  click Kclone3 "scripts/kaggle/clone_repo.py"
+  click Kbuild3 "scripts/pipeline/build_kaggle_push.py"
+  click Rraw3 "data/receptors"
+  click Rpdbqt3 "data/receptors/prepped"
+  click Lraw3 "data/ligands"
+  click Lcsv3 "data/ligands/df_sweep_reach.csv"
+  click Lsdf3 "data/ligands/df_aligned_sweep.sdf"
+  click Dout3 "data/output"
+  click Docs3 "docs"
+  click Specs3 "specs"
+  click Utl3 "scripts/utils.py"
+
+  %% Styles (unified)
+  classDef actor fill:#0b172a,stroke:#6aa1ff,stroke-width:2px,color:#e9f1ff;
+  classDef control fill:#1f2a44,stroke:#a6c0ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef pipeline fill:#163a59,stroke:#66c2ff,stroke-width:1.5px,color:#e9f1ff;
+  classDef runtime fill:#0f2f2a,stroke:#6ce0c3,stroke-width:1.5px,color:#e9f1ff;
+  classDef store fill:#2a1a0b,stroke:#ffcc80,stroke-width:1.5px,color:#fff2e6;
+  classDef artifact fill:#2a0f1f,stroke:#ffb3c8,stroke-width:1.5px,color:#ffe6ef;
+  classDef external fill:#2b2b2b,stroke:#bdbdbd,stroke-width:1.5px,color:#f5f5f5;
+  classDef kaggle fill:#3b2a52,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef receptor fill:#2f4b1c,stroke:#a6e36b,stroke-width:1.5px,color:#f2ffe6;
+  classDef ligand fill:#3f2a10,stroke:#ffb86b,stroke-width:1.5px,color:#fff3e6;
+  classDef dock fill:#3a1e2f,stroke:#ff7aa8,stroke-width:1.5px,color:#ffe6f0;
+  classDef validate fill:#2c1846,stroke:#c7a8ff,stroke-width:1.5px,color:#f3e9ff;
+  classDef viz fill:#1a3a3a,stroke:#63e6e2,stroke-width:1.5px,color:#e6ffff;
+  classDef docs fill:#2a2a12,stroke:#e6db74,stroke-width:1.5px,color:#fffde6;
+  classDef util fill:#102a43,stroke:#9fb3c8,stroke-width:1.5px,color:#e9f1ff;
+  classDef test fill:#2a1232,stroke:#ffb3e1,stroke-width:1.5px,color:#ffe6f7;
+
+Made by Ahmed Khaleel
+gageray/Docking-Project Diagram | GitDiagram

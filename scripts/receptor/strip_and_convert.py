@@ -43,6 +43,22 @@ def process_and_convert(pdb_path, meta_path, out_dir):
     base_name = os.path.basename(pdb_path).replace("_ligand", "").replace("_apo", "").replace("_prepped", "").split('.')[0]
     stripped_pdb = os.path.join(out_dir, f"{base_name}_stripped.pdb")
     final_pdbqt = os.path.join(out_dir, f"{base_name}_apo.pdbqt")
+    stripped_meta_path = os.path.join(out_dir, f"{base_name}_stripped_metadata.json")
+
+    # Generate the stripped metadata
+    stripped_meta = dict(meta)
+    # Keep only bzd chains
+    stripped_meta["chains"] = {ch: name for ch, name in meta.get("chains", {}).items() if ch in bzd_chains}
+    # Nullify ligand
+    stripped_meta["target_ligand_resn"] = None
+    stripped_meta["target_ligand_chain"] = None
+        
+    with open(stripped_meta_path, 'w') as f:
+        json.dump(stripped_meta, f, indent=4)
+    print(f"[+] Saved stripped metadata to {stripped_meta_path}")
+
+    # Clean up potentially clashing sidechain orientations
+    cmd.h_add("receptor") # Add hydrogens in PyMOL first (usually smarter than Babel)
 
     # Save the stripped PDB temporarily
     cmd.save(stripped_pdb, "receptor")
@@ -50,13 +66,16 @@ def process_and_convert(pdb_path, meta_path, out_dir):
 
     # Convert to PDBQT using OpenBabel
     # -xr = strict atomic parsing? -p 7.4 adds protonation at phys pH.
+    # -xc = Do NOT center the molecule on the origin
+    # -xn = Do NOT normalize (keeps your exact atom order/coords)
     obabel_cmd = [
         "obabel", 
         "-i", "pdb", stripped_pdb, 
         "-o", "pdbqt", 
         "-O", final_pdbqt, 
         "-p", "7.4", 
-        "--partialcharge", "gasteiger"
+        "--partialcharge", "gasteiger",
+        "-xc", "-xn"
     ]
     
     try:

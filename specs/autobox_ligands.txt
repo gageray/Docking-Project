@@ -1,0 +1,23 @@
+No. GNINA cannot "disable" or ignore chains within the receptor file on the fly. If the original ligand is present in the file passed to `-r`, GNINA treats it as solid receptor mass. Docking into that pocket will cause the exact steric clashes (positive energies) you are currently seeing.
+
+You must split the original complex into two separate files prior to execution:
+
+1. **`receptor_clean.pdbqt`**: The protein target only. Delete the ligand, waters, and buffer molecules.
+2. **`cryoem_ligand.sdf`** (or `.pdbqt`): The isolated native ligand, preserving its original uncentered coordinates.
+
+Pass the separated files to their respective arguments. GNINA will use the native ligand file exclusively to compute the bounding box dimensions and center, without including its atoms in the collision calculations:
+
+```python
+cmd = [
+    "gnina",
+    "-r", str(receptor_clean_path),
+    "-l", str(ligand_path),
+    "--autobox_ligand", str(cryoem_ligand_path),
+    "-o", str(output_path),
+    "--exhaustiveness", str(self.config.exhaustiveness),
+    "--num_modes", str(self.config.num_modes),
+    "--cnn_scoring", self.config.cnn_scoring,
+    "--cpu", str(self.config.cpu)
+]
+
+```

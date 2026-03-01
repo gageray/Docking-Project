@@ -1,0 +1,53 @@
+By default, when obabel adds hydrogens (-p 7.4) or calculates partial charges, it often triggers a "helpful" normalization that re-centers the coordinates to the geometric origin. Since you already moved your receptor to 0,0,0 based on the ligand, OpenBabel's re-centering is shifting the protein away from your intended docking site.
+
+Here is the 3-step fix to lock the model space and stop the clashing.
+1. Fix the obabel Command
+
+Modify your strip_and_convert.py to include the -xc (Do Not Center) and -xn (Do Not Normalize) flags. This forces OpenBabel to treat your input coordinates as gospel.
+
+Update this block in your script:
+Python
+
+    # -xc = Do NOT center the molecule on the origin
+    # -xn = Do NOT normalize (keeps your exact atom order/coords)
+    obabel_cmd = [
+        "obabel", 
+        "-ipdb", stripped_pdb, 
+        "-opdbqt", 
+        "-O", final_pdbqt, 
+        "-p", "7.4", 
+        "--partialcharge", "gasteiger",
+        "-xc", "-xn" 
+    ]
+
+2. Verify with the "Origin Sphere"
+
+Before running GNINA, verify that your "Apo" pocket is actually where you think it is. Run this in PyMOL or ChimeraX with your final_pdbqt loaded:
+
+    Command: distance check, all, (x=0, y=0, z=0)
+
+    What to look for: If the distance to the nearest atom is > 0, but the sphere is overlapping an atom, you have a collision. If the distance is > 10, OpenBabel shifted your model space and your search box is now floating in empty space.
+
+3. Strip Hydrogen Clashes
+
+Cryo-EM structures frequently have "tight" pockets. When obabel -p 7.4 adds hydrogens, it does so geometrically. If the receptor sidechains aren't perfectly relaxed, those new hydrogens will point directly into your ligand's space.
+
+Add this to your PyMOL logic before saving the stripped PDB:
+Python
+
+    # Clean up potentially clashing sidechain orientations
+    cmd.h_add() # Add hydrogens in PyMOL first (usually smarter than Babel)
+    # Optional: cmd.sculpt_activate("receptor") 
+    # cmd.sculpt_iterate("receptor", cycles=500) 
+
+Implementation Task List
+
+    Add -xc -xn to the obabel_cmd list in strip_and_convert.py.
+
+    Run a test conversion on a single file.
+
+    Compare the first line of stripped.pdb and final_pdbqt. If the numbers in columns 31-54 match exactly, the model space is fixed.
+
+    Check for "HETATM" leftovers: Your image shows floating sticks. Ensure cmd.remove("hetatm") is actually catching them; if they are labeled as "ATOM" in the source but aren't part of the BZD chain, your chain_sel logic should already be nuking them.
+
+Would you like me to rewrite the obabel subprocess call in your script to automatically run a coordinate-integrity check and throw an error if the shift is detected?
