@@ -5,6 +5,35 @@ from pymol import cmd
 import subprocess
 import glob
 
+def fix_pdb_elements(pdb_file):
+    """
+    RDKit/Meeko requires element symbols in columns 77-78.
+    PDB2PQR often leaves these blank. This script restores them.
+    """
+    with open(pdb_file, 'r') as f:
+        lines = f.readlines()
+
+    fixed_lines = []
+    for line in lines:
+        if line.startswith("ATOM") or line.startswith("HETATM"):
+            # Atom name is in columns 12-16. 
+            # Usually ' N  ', ' CA ', ' C  ', ' O  ', ' H  '
+            atom_name = line[12:16].strip()
+            
+            # Extract the element: 
+            # 1. If it starts with a digit (e.g., 1H), element is the second char
+            # 2. Otherwise, it's the first char (N, C, O, S, P)
+            element = atom_name[0] if not atom_name[0].isdigit() else atom_name[1]
+            
+            # Rebuild the line with the element symbol in columns 77-78
+            # Ensure the line is long enough (80 chars)
+            line = line.rstrip().ljust(76)
+            line = line[:76] + element.rjust(2) + "\n"
+        fixed_lines.append(line)
+
+    with open(pdb_file, 'w') as f:
+        f.writelines(fixed_lines)
+
 def process_and_convert(pdb_path, meta_path, out_dir):
     """
     Load a prepped PDB, strip to BZD chains only (no heteroatoms/water),
@@ -30,60 +59,66 @@ def process_and_convert(pdb_path, meta_path, out_dir):
 
     chain_sel = " or ".join([f"chain {c}" for c in bzd_chains])
     
-    # Strip down to only the relevant BZD protein chains:
-    # Remove everything that is not in the desired chains
+    # Strip down to only the relevant BZD protein chains
     cmd.remove(f"not ({chain_sel})")
     
-    # Remove heteroatoms (like the old ligand, crystallographic waters, etc.)
-    # GNINA receptor should purely be the protein.
-    cmd.remove("hetatm")
-    cmd.remove("resn HOH")
+    # Strictly remove all lipids, ligands, and waters regardless of HETATM tags
+    cmd.remove("not polymer.protein")
 
     # Name the output files
     base_name = os.path.basename(pdb_path).replace("_ligand", "").replace("_apo", "").replace("_prepped", "").split('.')[0]
     stripped_pdb = os.path.join(out_dir, f"{base_name}_stripped.pdb")
     final_pdbqt = os.path.join(out_dir, f"{base_name}_apo.pdbqt")
-    stripped_meta_path = os.path.join(out_dir, f"{base_name}_stripped_metadata.json")
 
-    # Generate the stripped metadata
-    stripped_meta = dict(meta)
-    # Keep only bzd chains
-    stripped_meta["chains"] = {ch: name for ch, name in meta.get("chains", {}).items() if ch in bzd_chains}
-    # Nullify ligand
-    stripped_meta["target_ligand_resn"] = None
-    stripped_meta["target_ligand_chain"] = None
-        
-    with open(stripped_meta_path, 'w') as f:
-        json.dump(stripped_meta, f, indent=4)
-    print(f"[+] Saved stripped metadata to {stripped_meta_path}")
+    # Save the stripped, unprotonated PDB temporarily
+    raw_pdb = stripped_pdb.replace(".pdb", "_raw.pdb")
+    cmd.save(raw_pdb, "receptor")
+    print(f"[*] Saved raw stripped PDB to {raw_pdb}")
 
-    # Clean up potentially clashing sidechain orientations
-    cmd.h_add("receptor") # Add hydrogens in PyMOL first (usually smarter than Babel)
-
-    # Save the stripped PDB temporarily
-    cmd.save(stripped_pdb, "receptor")
-    print(f"[+] Saved temporary stripped PDB to {stripped_pdb}")
-
-    # Convert to PDBQT using OpenBabel
-    # -xr = strict atomic parsing? -p 7.4 adds protonation at phys pH.
-    # -xc = Do NOT center the molecule on the origin
-    # -xn = Do NOT normalize (keeps your exact atom order/coords)
-    obabel_cmd = [
-        "obabel", 
-        "-i", "pdb", stripped_pdb, 
-        "-o", "pdbqt", 
-        "-O", final_pdbqt, 
-        "-p", "7.4", 
-        "--partialcharge", "gasteiger",
-        "-xc", "-xn"
+    # Add chemically accurate hydrogens at pH 7.4 using PDB2PQR
+    # --keep-chain prevents it from stripping chain IDs (critical for GNINA tracking)
+    protonated_pdb = stripped_pdb
+    pdb2pqr_cmd = [
+        "pdb2pqr",
+        "--ff=PARSE",
+        "--titration-state-method=propka",
+        "--with-ph=7.4",
+        "--keep-chain",
+        raw_pdb,
+        protonated_pdb
     ]
     
     try:
-        subprocess.run(obabel_cmd, check=True, capture_output=True)
-        print(f"[+] Successfully converted to {final_pdbqt}")
+        subprocess.run(pdb2pqr_cmd, check=True, capture_output=True)
+        print(f"[+] Successfully protonated via PDB2PQR to {protonated_pdb}")
+        
+        # SANITIZE: Fix missing element columns for RDKit/Meeko
+        fix_pdb_elements(protonated_pdb)
+        print(f"[*] Sanitized element symbols in {protonated_pdb}")
+        
     except subprocess.CalledProcessError as e:
-        print(f"[-] OpenBabel conversion failed for {stripped_pdb}:")
-        print(e.stderr.decode('utf-8'))
+        print(f"[-] PDB2PQR failed for {raw_pdb}:")
+        if e.stderr:
+            print(e.stderr.decode('utf-8'))
+        return
+
+    # Convert the accurately protonated PDB to PDBQT using Meeko
+    out_basename = os.path.splitext(final_pdbqt)[0]
+    
+    meeko_cmd = [
+        "mk_prepare_receptor.py",
+        "-i", protonated_pdb,
+        "-o", out_basename,
+        "-p"
+    ]
+    
+    try:
+        subprocess.run(meeko_cmd, check=True, capture_output=True)
+        print(f"[+] Successfully converted via Meeko to {final_pdbqt}")
+    except subprocess.CalledProcessError as e:
+        print(f"[-] Meeko conversion failed for {protonated_pdb}:")
+        if e.stderr:
+            print(e.stderr.decode('utf-8'))
         
     # Clean up PyMOL for the next run
     cmd.delete("all")

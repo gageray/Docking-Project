@@ -1,0 +1,75 @@
+TODO
+
+REMOVE OPENBABBEL
+FIX FUCKING SETUP ENV TO REMOVE ANYTHING NOT NEEDED FOR GNINA.
+FIX HYDROGEN PROBLEMS WIHT STRIPPPING AND CONVERTING
+ADD MEEKO AND pdb2pqr MEEDO FOR THE CONVERSION AND THE OHTER FOR HYDROGEN
+
+
+### Worker Execution Plan: Chemically Accurate Pipeline (PDB2PQR + Meeko)
+
+**1. Kaggle Environment Initialization**
+Install both `pdb2pqr` (for pKa calculation and hydrogen assignment) and `meeko` (for PDBQT conversion) in a single Conda command to ensure dependency resolution.
+
+```bash
+conda install -y -c conda-forge pdb2pqr meeko
+
+```
+
+**2. Code Modification (`strip_and_convert.py`)**
+Replace lines 34-69 (everything from the `cmd.remove` block down through the `obabel` subprocess and exception handling) with the following comprehensive block.
+
+This executes strict polymer isolation, runs `pdb2pqr` to calculate titration states at physiological pH 7.4, and feeds the chemically correct structure to Meeko.
+
+```python
+    # Strip down to only the relevant BZD protein chains
+    cmd.remove(f"not ({chain_sel})")
+    
+    # Strictly remove all lipids, ligands, and waters regardless of HETATM tags
+    cmd.remove("not polymer.protein")
+
+    # Save the stripped, unprotonated PDB temporarily
+    raw_pdb = stripped_pdb.replace(".pdb", "_raw.pdb")
+    cmd.save(raw_pdb, "receptor")
+    print(f"[*] Saved raw stripped PDB to {raw_pdb}")
+
+    # Add chemically accurate hydrogens at pH 7.4 using PDB2PQR
+    # --keep-chain prevents it from stripping chain IDs (critical for GNINA tracking)
+    protonated_pdb = stripped_pdb
+    pdb2pqr_cmd = [
+        "pdb2pqr",
+        "--ff=PARSE",
+        "--titration-state-method=propka",
+        "--with-ph=7.4",
+        "--keep-chain",
+        raw_pdb,
+        protonated_pdb
+    ]
+    
+    try:
+        subprocess.run(pdb2pqr_cmd, check=True, capture_output=True)
+        print(f"[+] Successfully protonated via PDB2PQR to {protonated_pdb}")
+    except subprocess.CalledProcessError as e:
+        print(f"[-] PDB2PQR failed for {raw_pdb}:")
+        if e.stderr:
+            print(e.stderr.decode('utf-8'))
+        return
+
+    # Convert the accurately protonated PDB to PDBQT using Meeko
+    # --skip_gpf prevents generation of unnecessary AutoGrid files
+    meeko_cmd = [
+        "mk_prepare_receptor.py",
+        "--pdb", protonated_pdb,
+        "-o", final_pdbqt,
+        "--skip_gpf"
+    ]
+    
+    try:
+        subprocess.run(meeko_cmd, check=True, capture_output=True)
+        print(f"[+] Successfully converted via Meeko to {final_pdbqt}")
+    except subprocess.CalledProcessError as e:
+        print(f"[-] Meeko conversion failed for {protonated_pdb}:")
+        if e.stderr:
+            print(e.stderr.decode('utf-8'))
+
+```
