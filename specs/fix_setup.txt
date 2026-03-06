@@ -1,0 +1,152 @@
+### Master Workflow: Metadata-Driven Kaggle Pipeline
+
+Here is the complete, end-to-end architecture document detailing the script workflow, the metadata-driven dependency injection, and the explicit removal of all orphaned code.
+
+---
+
+### 1. The Purge: Orphaned Scripts
+
+The remote Kaggle server is strictly a headless batch processor. `bootstrap.py` is self-contained and handles its own Drive authentication, file downloading, and directory creation.
+
+Because of this, the following scripts are dead weight on the Kaggle server and are **permanently excluded** from the Drive push folder:
+
+* `setup_dirs.py`: Orphaned. `bootstrap.py` creates `/kaggle/working/outputs` natively.
+
+
+* `hardware_check.py`: Orphaned. `worker.py` routes GPUs based on `work_queue.json`, ignoring dynamic hardware discovery.
+
+
+* `clone_repo.py`: Orphaned. Git is not used in the remote execution path.
+
+
+* `drive_auth.py` & `drive_io.py`: Orphaned remotely. `bootstrap.py` implements its own Drive API calls to bootstrap the environment before local modules load. These are only needed locally by `pull_outputs.py`.
+
+
+* 
+`setup_env.py` (Old Version): Replaced by task-specific setup scripts (e.g., `setup_gnina.py`) to prevent installing 10 useless pip packages for a binary-only job .
+
+
+
+---
+
+### 2. The Metadata Hub: `job_config.json`
+
+This local file dictates the entire pipeline. The top-level heading represents the target task. It defines the exact strict allowlist of scripts to push to Google Drive, and specifies which setup script the Kaggle server must execute.
+
+```json
+{
+  "gnina_docking": {
+    "push_scripts": [
+      "worker.py",
+      "setup_gnina.py",
+      "gnina_runner.py"
+    ],
+    "setup_script": "setup_gnina.py"
+  },
+  "md_simulation": {
+    "push_scripts": [
+      "worker.py",
+      "setup_md.py",
+      "openmm_runner.py"
+    ],
+    "setup_script": "setup_md.py"
+  }
+}
+
+```
+
+---
+
+### 3. Phase 1: Local Staging (`build_kaggle_push.py`)
+
+Executes locally. It takes the task heading as an argument, reads `job_config.json`, and uploads **only** the scripts listed in `push_scripts`. This physically separates the required code from the orphaned code.
+
+```python
+import json
+import os
+import sys
+import drive_io
+
+def push_payload(drive_service, push_folder_id, local_scripts_dir, config_path, task_heading):
+    with open(config_path) as f:
+        config = json.load(f)
+
+    task_config = config.get(task_heading)
+    if not task_config:
+        sys.exit(f"FATAL: Heading '{task_heading}' not found in {config_path}")
+
+    # Enforce strict allowlist to drop orphaned scripts
+    for script in task_config["push_scripts"]:
+        script_path = os.path.join(local_scripts_dir, script)
+        if os.path.exists(script_path):
+            drive_io.upload_to_drive(drive_service, script_path, push_folder_id)
+        else:
+            sys.exit(f"FATAL: Missing script {script_path}")
+
+    return task_config["setup_script"]
+
+```
+
+---
+
+### 4. Phase 2: Local Dispatch (`local_dispatcher.py`)
+
+Executes locally. It acts as the scheduler. It polls Drive for completed jobs, builds the incremental execution queue, and injects the `setup_script` value (retrieved from Phase 1) into `work_queue.json`. It triggers the Kaggle kernel .
+
+```json
+// Example of the final work_queue.json pushed to Kaggle
+{
+  "task_type": "gnina_docking",
+  "setup_script": "setup_gnina.py", 
+  "max_workers": 2,
+  "jobs": [ ... ]
+}
+
+```
+
+---
+
+### 5. Phase 3: Remote Orchestration (`bootstrap.py`)
+
+Executes remotely on Kaggle. It downloads the workspace from Drive, which now only contains the lean, allowlisted scripts. It reads `work_queue.json` to extract the `setup_script` target, dynamically imports it, and triggers the environment build.
+
+```python
+import json
+import sys
+import importlib
+import os
+
+def setup_environment():
+    sys.path.insert(0, "/kaggle/working")
+    
+    with open("/kaggle/working/work_queue.json") as f:
+        queue_data = json.load(f)
+
+    # Extract the target setup script injected by local_dispatcher
+    setup_file = queue_data.get("setup_script", "setup_gnina.py")
+    setup_module_name = setup_file.replace(".py", "")
+    
+    # Dynamically route the environment setup
+    setup_module = importlib.import_module(setup_module_name)
+    setup_module.setup_kaggle_environment()
+
+```
+
+---
+
+### 6. Phase 4: Remote Environment (`setup_gnina.py`)
+
+Executes remotely on Kaggle, triggered by `bootstrap.py`. This isolated module contains the hardcoded system and Python package dependencies for its specific task.
+
+```python
+import subprocess
+import os
+
+def setup_kaggle_environment():
+    # Only the exact packages needed for GNINA run here.
+    install_path = "/usr/local/bin/gnina"
+    if not os.path.exists(install_path):
+        subprocess.run(["wget", "-q", "https://github.com/gnina/gnina/releases/download/v1.1/gnina", "-O", install_path], check=True)
+        subprocess.run(["chmod", "+x", install_path], check=True)
+
+```

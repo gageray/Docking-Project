@@ -84,6 +84,7 @@ def process_and_convert(pdb_path, meta_path, out_dir):
         "--titration-state-method=propka",
         "--with-ph=7.4",
         "--keep-chain",
+        "--nodebump",
         raw_pdb,
         protonated_pdb
     ]
