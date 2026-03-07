@@ -1,0 +1,113 @@
+{
+  "neutral_smiles": "CCOC(=O)C1=C2CN(C(=O)C3=C(N2C=N1)C=CC(=C3)F)C",
+  "charged_smiles": "CCOC(=O)c1ncn2c1C[N@@H+](C)C(=O)c1cc(F)ccc1-2",
+  "formal_charge": 1,
+  "energy_window": 5.0,
+  "method": "CREST/GFN2-xTB",
+  "reference_ligand": "FYP:Z",
+  "total_conformers": 14,
+  "best_rmsd": 2.3465605603999404,
+  "best_conf_id": 6,
+  "best_conf_delta_energy": 6.0,
+  "passing_conformers": 0,
+  "all_results": [
+    {
+      "conf_id": 6,
+      "energy": 7.0,
+      "delta_energy": 6.0,
+      "rmsd_to_crystal": 2.3465605603999404,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 9,
+      "energy": 10.0,
+      "delta_energy": 9.0,
+      "rmsd_to_crystal": 2.3703776650359853,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 10,
+      "energy": 11.0,
+      "delta_energy": 10.0,
+      "rmsd_to_crystal": 2.3714704752416713,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 7,
+      "energy": 8.0,
+      "delta_energy": 7.0,
+      "rmsd_to_crystal": 2.371554330272686,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 5,
+      "energy": 6.0,
+      "delta_energy": 5.0,
+      "rmsd_to_crystal": 2.3766432786775047,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 4,
+      "energy": 5.0,
+      "delta_energy": 4.0,
+      "rmsd_to_crystal": 2.379200604321345,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 8,
+      "energy": 9.0,
+      "delta_energy": 8.0,
+      "rmsd_to_crystal": 2.381290939901813,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 3,
+      "energy": 4.0,
+      "delta_energy": 3.0,
+      "rmsd_to_crystal": 2.3828144822773076,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 2,
+      "energy": 3.0,
+      "delta_energy": 2.0,
+      "rmsd_to_crystal": 2.393552982067049,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 1,
+      "energy": 2.0,
+      "delta_energy": 1.0,
+      "rmsd_to_crystal": 2.402071879509522,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 12,
+      "energy": 13.0,
+      "delta_energy": 12.0,
+      "rmsd_to_crystal": 2.4078449570288005,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 11,
+      "energy": 12.0,
+      "delta_energy": 11.0,
+      "rmsd_to_crystal": 2.4144800671121547,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 0,
+      "energy": 1.0,
+      "delta_energy": 0.0,
+      "rmsd_to_crystal": 2.415296506827417,
+      "pass_threshold": false
+    },
+    {
+      "conf_id": 13,
+      "energy": 14.0,
+      "delta_energy": 13.0,
+      "rmsd_to_crystal": 2.4191648431444777,
+      "pass_threshold": false
+    }
+  ]
+}

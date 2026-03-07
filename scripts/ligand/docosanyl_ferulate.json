@@ -1,0 +1,7 @@
+{
+    "name": "docosanyl_ferulate",
+    "smiles": "CCCCCCCCCCCCCCCCCCCCCCOC(=O)/C=C/C1=CC(=C(C=C1)O)OC",
+    "outdir": "data/ligands",
+    "threads": 8,
+    "mode": "constrained"
+}

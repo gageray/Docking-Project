@@ -1,0 +1,170 @@
+{
+  "receptor": "data/receptors/6X3U_aligned.pdb",
+  "reference_ligand": "FYP:Z",
+  "docked_sdf": "data/output/6X3U_aligned_apo_flumazenil_out.sdf",
+  "total_poses": 20,
+  "passing_poses": 0,
+  "best_rmsd": 4.0435323542820525,
+  "results": [
+    {
+      "pose_idx": 17,
+      "rmsd": 4.0435323542820525,
+      "gnina_score": 12.16601,
+      "cnn_score": 0.6230245233,
+      "cnn_affinity": 4.745013237,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 13,
+      "rmsd": 4.0803302967418755,
+      "gnina_score": 11.31384,
+      "cnn_score": 0.6491520405,
+      "cnn_affinity": 5.8853797913,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 0,
+      "rmsd": 4.114071176989267,
+      "gnina_score": -7.19754,
+      "cnn_score": 0.8414219022,
+      "cnn_affinity": 6.5004615784,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 3,
+      "rmsd": 4.140175842359018,
+      "gnina_score": -1.0546,
+      "cnn_score": 0.7543053627,
+      "cnn_affinity": 4.3230605125,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 4,
+      "rmsd": 4.150628267663974,
+      "gnina_score": -8.14886,
+      "cnn_score": 0.7481630445,
+      "cnn_affinity": 6.3928704262,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 1,
+      "rmsd": 4.153524550429264,
+      "gnina_score": -7.08126,
+      "cnn_score": 0.8221447468,
+      "cnn_affinity": 6.2508678436,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 5,
+      "rmsd": 4.186133199037163,
+      "gnina_score": -8.1227,
+      "cnn_score": 0.737223804,
+      "cnn_affinity": 6.262345314,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 9,
+      "rmsd": 4.2121776893172385,
+      "gnina_score": -7.88915,
+      "cnn_score": 0.6891556382,
+      "cnn_affinity": 6.2019586563,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 12,
+      "rmsd": 4.217814702725187,
+      "gnina_score": -1.50672,
+      "cnn_score": 0.6501392126,
+      "cnn_affinity": 4.3450660706,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 11,
+      "rmsd": 4.258976824729315,
+      "gnina_score": 11.23194,
+      "cnn_score": 0.6535470486,
+      "cnn_affinity": 5.1430997849,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 15,
+      "rmsd": 4.267258967163322,
+      "gnina_score": 3.64242,
+      "cnn_score": 0.6307791471,
+      "cnn_affinity": 5.901196003,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 16,
+      "rmsd": 4.27621180567353,
+      "gnina_score": 12.55453,
+      "cnn_score": 0.6266757846,
+      "cnn_affinity": 5.3578310013,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 18,
+      "rmsd": 4.28863727208998,
+      "gnina_score": -6.7748,
+      "cnn_score": 0.5894770622,
+      "cnn_affinity": 5.8776769638,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 19,
+      "rmsd": 4.305386421067328,
+      "gnina_score": 22.71624,
+      "cnn_score": 0.5880866051,
+      "cnn_affinity": 5.7795090675,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 7,
+      "rmsd": 4.3242126973658666,
+      "gnina_score": -7.27168,
+      "cnn_score": 0.7029252648,
+      "cnn_affinity": 6.2869529724,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 8,
+      "rmsd": 4.328011061802973,
+      "gnina_score": 8.62115,
+      "cnn_score": 0.6986023784,
+      "cnn_affinity": 5.4888305664,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 2,
+      "rmsd": 4.357768145487664,
+      "gnina_score": -0.79506,
+      "cnn_score": 0.7712028027,
+      "cnn_affinity": 4.3010134697,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 10,
+      "rmsd": 4.360675053651666,
+      "gnina_score": -6.68615,
+      "cnn_score": 0.6641800404,
+      "cnn_affinity": 6.0102968216,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 14,
+      "rmsd": 4.366472205239524,
+      "gnina_score": 10.68992,
+      "cnn_score": 0.6343215704,
+      "cnn_affinity": 5.6276321411,
+      "pass_threshold": false
+    },
+    {
+      "pose_idx": 6,
+      "rmsd": 4.375635368506333,
+      "gnina_score": -1.01573,
+      "cnn_score": 0.7362228632,
+      "cnn_affinity": 4.2107281685,
+      "pass_threshold": false
+    }
+  ]
+}

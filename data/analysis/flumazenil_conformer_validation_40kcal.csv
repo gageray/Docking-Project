@@ -1,0 +1,2 @@
+conf_id,energy,delta_energy,energy_bin,min_nonbonded_dist,has_clash,rmsd_to_crystal,pass_threshold
+48,2984542165.9210,0.0000,0-10,2.1577,False,2.4729,False

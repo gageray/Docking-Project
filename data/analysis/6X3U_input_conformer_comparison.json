@@ -1,0 +1,15 @@
+{
+  "receptor": "data/receptors/6X3U_aligned.pdb",
+  "reference_ligand": "FYP:Z",
+  "input_sdf": "data/ligands/flumazenil.sdf",
+  "total_conformers": 1,
+  "passing_conformers": 0,
+  "best_rmsd": 2.4699305216590317,
+  "results": [
+    {
+      "conformer_idx": 0,
+      "rmsd_aligned": 2.4699305216590317,
+      "pass_threshold": false
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# GABA-A Ligand Preparation Pipeline: Resolving pKa and Conformational Artifacts
+
+## 1. pKa Prediction and Microstate Selection (pH 7.4)
+
+* **The Dimorphite-DL Failure:** Dimorphite relies on rudimentary 2D SMARTS patterns. It fails to account for extended conjugation and electron-withdrawing groups in complex scaffolds like imidazobenzodiazepines. This results in false protonation of the imidazole nitrogen.
+* **Docking Impact:** GNINA heavily penalizes burying a false +1 charge in a lipophilic pocket due to massive desolvation costs, neutralizing affinity scores.
+* **Protocol:** Discard Dimorphite for complex heterocyclic scaffolds. Verify the dominant microstate at pH 7.4 via ChEMBL experimental data or utilize QM-derived pKa predictors for the core ligand set before initiating automated Kaggle batch runs. Flumazenil must be processed as a neutral molecule.
+
+## 2. 3D Seed Generation (The ETKDG Bypass)
+
+* **Neutral Ligands (e.g., Flumazenil):** Execute standard RDKit ETKDGv3 embedding directly on the verified neutral SMILES.
+* **Charged Ligands:** Execute the custom MCS-transfer script. Embed the neutral graph with ETKDG, map the topology via `rdFMCS`, and mathematically add the proton in 3D space to bypass RDKit distance bounds failures on charged graphs.
+
+## 3. Quantum Mechanical Conformational Search
+
+Execute GFN2-xTB to locate the true physical minimum, replacing empirical force fields (MMFF94) that fail to accurately model electron density and conjugation.
+
+* **Topology Routing:** Dynamically route the execution based on the number of rotatable bonds to prevent metadynamics bias traps and thread starvation.
+* **Rigid (`n_rot == 0`):** Execute `xtb --opt` for direct L-BFGS geometry optimization.
+* **Stiff (`n_rot <= 2`):** Execute `crest --mquick --nocross` to sample limited torsions without artificial structural warping.
+* **Flexible (`n_rot > 2`):** Execute standard `crest --mquick`.
+
+
+
+## 4. GNINA Formatting
+
+* Parse the lowest-energy conformer from the `crest_conformers.xyz` output.
+* Convert the optimized XYZ coordinates to SDF format using RDKit, ensuring the verified formal charges and 3D coordinates are strictly retained.
+* Feed the QM-optimized SDF directly into the docking engine.

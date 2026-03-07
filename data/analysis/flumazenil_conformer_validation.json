@@ -1,0 +1,44 @@
+{
+  "smiles": "CCOC(=O)c1ncn2c1C[N@@H+](C)C(=O)c1cc(F)ccc1-2",
+  "num_conformers_generated": 100,
+  "num_conformers_valid": 1,
+  "energy_window": 20.0,
+  "min_energy": 2984542165.921032,
+  "geometry": {
+    "num_atoms": 22,
+    "num_bonds": 24,
+    "num_rotatable_bonds": 2,
+    "molecular_weight": 304.30100000000004,
+    "conformers": [
+      {
+        "conf_id": 48,
+        "energy": 2984542165.921032,
+        "min_nonbonded_dist": 2.1576501775436068,
+        "has_clash": false
+      }
+    ]
+  },
+  "diversity": {
+    "num_conformers": 1,
+    "mean_pairwise_rmsd": null,
+    "median_pairwise_rmsd": null,
+    "min_pairwise_rmsd": null,
+    "max_pairwise_rmsd": null,
+    "rmsd_matrix": []
+  },
+  "crystal_comparison": {
+    "reference_ligand": "FYP:Z",
+    "best_rmsd": 2.4729324145181364,
+    "best_conf_id": 48,
+    "best_conf_energy_rank": 0,
+    "passing_conformers": 0,
+    "all_results": [
+      {
+        "conf_id": 48,
+        "energy": 2984542165.921032,
+        "rmsd_to_crystal": 2.4729324145181364,
+        "pass_threshold": false
+      }
+    ]
+  }
+}
