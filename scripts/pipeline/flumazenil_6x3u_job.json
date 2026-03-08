@@ -3,7 +3,7 @@
     "6X3U_aligned_apo.pdbqt"
   ],
   "ligands": [
-    "flumazenil.sdf"
+    "flumazenil_qm.sdf"
   ],
   "boxes": [
     {

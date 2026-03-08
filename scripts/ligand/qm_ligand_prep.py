@@ -4,7 +4,7 @@ Single-Job QM Ligand Preparation Pipeline
 Generates 3D coordinates and executes GFN2-xTB conformational searches.
 Operates via CLI arguments or a single-job JSON config.
 
-Uses GNN-based pKa prediction to determine correct protonation state at target pH.
+Uses QupKake QM-based pKa prediction to determine correct protonation state at target pH.
 """
 
 import sys
@@ -17,61 +17,19 @@ from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolTransforms, Descriptors
 
+# Import QupKake-based pKa prediction
 try:
-    from pka_predictor_moitessier.predict import predict_from_smiles
-    GNN_PKA_AVAILABLE = True
-except ImportError:
-    GNN_PKA_AVAILABLE = False
-    print("WARNING: pka_predictor_moitessier not installed. Using input SMILES as-is.")
+    from qupkake_pka import get_pka_and_state
+    QUPKAKE_AVAILABLE = True
+except ImportError as e:
+    QUPKAKE_AVAILABLE = False
+    print(f"WARNING: qupkake_pka module not found. Error: {e}")
 
-def get_correct_protonation_state(input_smiles: str, target_ph: float = 7.4, name: str = "ligand") -> str:
-    """
-    Uses GNN pKa predictor to determine the dominant microstate at target pH.
-    Falls back to input SMILES if GNN is unavailable.
-
-    Args:
-        input_smiles: Input SMILES (any protonation state)
-        target_ph: Target pH (default 7.4)
-        name: Ligand name for logging
-
-    Returns:
-        SMILES of dominant microstate at target pH
-    """
-    if not GNN_PKA_AVAILABLE:
-        print(f"[{name}] GNN pKa predictor unavailable, using input SMILES")
-        return input_smiles
-
-    print(f"[{name}] Analyzing protonation state via GNN at pH {target_ph}...")
-
-    try:
-        results = predict_from_smiles(input_smiles, ph=target_ph)
-
-        if not results or 'smiles_at_ph' not in results:
-            print(f"[{name}] GNN prediction failed, using input SMILES")
-            return input_smiles
-
-        corrected_smiles = results['smiles_at_ph']
-
-        # Calculate formal charge difference
-        mol_input = Chem.MolFromSmiles(input_smiles)
-        mol_corrected = Chem.MolFromSmiles(corrected_smiles)
-
-        if mol_input and mol_corrected:
-            charge_input = Chem.GetFormalCharge(mol_input)
-            charge_corrected = Chem.GetFormalCharge(mol_corrected)
-
-            if charge_input != charge_corrected:
-                print(f"[{name}] GNN adjusted charge: {charge_input:+d} → {charge_corrected:+d}")
-            else:
-                print(f"[{name}] GNN confirmed charge: {charge_corrected:+d}")
-
-        print(f"[{name}] GNN-corrected SMILES: {corrected_smiles}")
-        return corrected_smiles
-
-    except Exception as e:
-        print(f"[{name}] ERROR during GNN prediction: {e}")
-        print(f"[{name}] Falling back to input SMILES")
-        return input_smiles
+    # Fallback: no-op function that returns input SMILES and empty pKa dict
+    def get_pka_and_state(input_smiles: str, target_ph: float = 7.4, name: str = "ligand"):
+        """Fallback when QupKake is unavailable - returns input SMILES unchanged."""
+        print(f"[{name}] QupKake unavailable, using input SMILES as-is")
+        return input_smiles, {}
 
 def find_longest_aliphatic_chain(mol: Chem.Mol) -> list:
     """
@@ -124,7 +82,8 @@ def run_crest_job(name: str, mol: Chem.Mol, workdir: Path, outdir: Path, threads
             f.write(f"{atom.GetSymbol():2s} {pos.x:12.6f} {pos.y:12.6f} {pos.z:12.6f}\n")
 
     cmd = ['crest', seed_xyz.name, '--gfn2', '--chrg', str(formal_charge),
-           '--ewin', str(energy_window), '--quick', '-T', str(threads)]
+           '--ewin', str(energy_window), '--quick', '-T', str(threads),
+           '--alpb', 'water']
     if cinp_path and cinp_path.exists():
         cmd.extend(['--cinp', cinp_path.name])
         
@@ -183,9 +142,14 @@ def process_ligand(args):
     workdir = outdir / f"{args.name}_crest"
     workdir.mkdir(parents=True, exist_ok=True)
 
-    # Step 1: Get correct protonation state via GNN
-    target_ph = getattr(args, 'ph', 7.4)
-    corrected_smiles = get_correct_protonation_state(args.smiles, target_ph, args.name)
+    # Step 1: Get correct protonation state via QupKake (if pH specified)
+    target_ph = getattr(args, 'ph', None)
+    if target_ph is not None:
+        print(f"[{args.name}] Running QupKake pKa prediction at pH {target_ph}")
+        corrected_smiles, _ = get_pka_and_state(args.smiles, target_ph, args.name)
+    else:
+        print(f"[{args.name}] No pH specified, using input SMILES as-is (skipping pKa prediction)")
+        corrected_smiles = args.smiles
 
     # Step 2: Parse corrected SMILES
     mol = Chem.MolFromSmiles(corrected_smiles)
@@ -261,15 +225,15 @@ def process_ligand(args):
         run_crest_job(args.name, mol, workdir, outdir, args.threads, formal_charge)
 
 def main():
-    parser = argparse.ArgumentParser(description="Single-Job QM Ligand Preparation with GNN pKa Prediction")
+    parser = argparse.ArgumentParser(description="Single-Job QM Ligand Preparation with QupKake pKa Prediction")
     parser.add_argument('-c', '--config', type=str, help='Path to single-job JSON config file')
     parser.add_argument('-n', '--name', type=str, help='Ligand name')
     parser.add_argument('-s', '--smiles', type=str, help='Ligand SMILES (neutral form recommended)')
     parser.add_argument('-o', '--outdir', type=str, default='data/ligands', help='Output directory')
     parser.add_argument('-t', '--threads', type=int, default=4, help='CPU threads (default: 4)')
     parser.add_argument('-m', '--mode', type=str, choices=['standard', 'constrained'], default='standard', help='Sampling mode')
-    parser.add_argument('--ph', type=float, default=7.4, help='Target pH for protonation state (default: 7.4)')
-    parser.add_argument('--pka-only', action='store_true', help='Only run pKa prediction and save results, skip CREST')
+    parser.add_argument('--ph', type=float, default=None, help='Target pH for protonation state (if not specified, skips pKa prediction)')
+    parser.add_argument('--pka-only', action='store_true', help='Only run QupKake pKa prediction and save results, skip CREST')
 
     args = parser.parse_args()
 
@@ -291,13 +255,16 @@ def main():
 
     # pKa-only mode: Just run prediction and save results
     if args.pka_only:
-        if not GNN_PKA_AVAILABLE:
-            print("ERROR: --pka-only requires pka_predictor_moitessier to be installed.")
-            print("Install with: pip install pka-predictor-moitessier")
+        if not QUPKAKE_AVAILABLE:
+            print("ERROR: --pka-only requires qupkake_pka module.")
+            print("Ensure qupkake_pka.py is in the same directory and QupKake is installed.")
             sys.exit(1)
 
-        target_ph = getattr(args, 'ph', 7.4)
-        corrected_smiles = get_correct_protonation_state(args.smiles, target_ph, args.name)
+        target_ph = getattr(args, 'ph', None)
+        if target_ph is None:
+            print("ERROR: --pka-only requires --ph to be specified.")
+            sys.exit(1)
+        corrected_smiles, pka_records = get_pka_and_state(args.smiles, target_ph, args.name)
 
         # Parse and get charge
         mol = Chem.MolFromSmiles(corrected_smiles)
@@ -322,6 +289,16 @@ def main():
             f.write(f"\n")
             f.write(f"Formal Charge: {formal_charge:+d}\n")
             f.write(f"\n")
+
+            # Write predicted pKa values
+            f.write(f"Predicted pKa Values (QupKake):\n")
+            if not pka_records:
+                f.write("  No ionizable sites detected.\n")
+            else:
+                for atom_info, val in pka_records.items():
+                    f.write(f"  {atom_info}: {val:.2f}\n")
+            f.write(f"\n")
+
             f.write(f"Heavy Atoms: {mol.GetNumAtoms()}\n")
             f.write(f"Molecular Weight: {Descriptors.MolWt(mol):.2f}\n")
 

@@ -1,13 +1,16 @@
-Ligand: flumazenil
+Ligand: Flumazenil
 Target pH: 7.4
 
 Input SMILES:
-CCOC(=O)C1=C2CN(C(=O)C3=C(N2C=N1)C=CC(=C3)F)C
+N12C=NC(C(OCC)=O)=C1CN(C)C(=O)C1=CC(F)=CC=C12
 
 Corrected SMILES (pH 7.4):
-CCOC(=O)C1=C2CN(C(=O)C3=C(N2C=N1)C=CC(=C3)F)C
+CCOC(=O)c1ncn2c1CN(C)C(=O)c1cc(F)ccc1-2
 
 Formal Charge: +0
+
+Predicted pKa Values (QupKake):
+  Atom 2 (N): 3.59
 
 Heavy Atoms: 22
 Molecular Weight: 303.29

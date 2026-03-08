@@ -1,0 +1,16 @@
+Ligand: Test
+Target pH: 7.4
+
+Input SMILES:
+CC(=O)Oc1ccccc1C(=O)O
+
+Corrected SMILES (pH 7.4):
+CC(=O)Oc1ccccc1C(=O)[O-]
+
+Formal Charge: -1
+
+Predicted pKa Values (QupKake):
+  Atom 12 (O): 1.48
+
+Heavy Atoms: 13
+Molecular Weight: 179.15

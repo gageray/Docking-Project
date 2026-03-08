@@ -1,0 +1,13 @@
+Ligand: ferulic_acid
+Target pH: 7.4
+
+Input SMILES:
+COC1=C(C=CC(=C1)/C=C/C(=O)O)O
+
+Corrected SMILES (pH 7.4):
+COC1=C(C=CC(=C1)/C=C/C(=O)[O-])[OH]
+
+Formal Charge: -1
+
+Heavy Atoms: 14
+Molecular Weight: 193.18
