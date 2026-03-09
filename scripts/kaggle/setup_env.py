@@ -11,14 +11,15 @@ def install_apt_packages(packages=None, quiet=True):
     """Install APT packages via apt-get.
 
     Args:
-        packages (list, optional): Package names. Defaults to docking requirements.
+        packages (list, optional): Package names. Defaults to None (skip APT install).
         quiet (bool): Suppress verbose output. Default True.
 
     Example:
         >>> install_apt_packages(['openbabel', 'libopenbabel-dev'])
     """
     if packages is None:
-        packages = ['openbabel', 'libopenbabel-dev']
+        print("=== Skipping APT packages (not needed for GNINA) ===")
+        return
 
     print("=== Installing APT packages ===")
 
@@ -40,21 +41,14 @@ def install_pip_packages(packages=None, break_system=True):
     """Install Python packages via pip.
 
     Args:
-        packages (list, optional): Package names. Defaults to docking requirements.
+        packages (list, optional): Package names. Defaults to RDKit only.
         break_system (bool): Use --break-system-packages flag. Default True.
 
     Example:
-        >>> install_pip_packages(['rdkit', 'biopython'])
+        >>> install_pip_packages(['rdkit'])
     """
     if packages is None:
-        packages = [
-            'pdbfixer',
-            'openmm',
-            'biopython',
-            'mdanalysis',
-            'openbabel-wheel',
-            'rdkit'
-        ]
+        packages = ['rdkit']
 
     print("=== Installing Python packages ===")
 
@@ -69,7 +63,7 @@ def install_pip_packages(packages=None, break_system=True):
 
 
 def install_gnina(install_path="/usr/local/bin/gnina", force=False):
-    """Download and install GNINA binary.
+    """Install GNINA from Kaggle dataset.
 
     Args:
         install_path (str): Where to install GNINA. Default /usr/local/bin/gnina
@@ -83,19 +77,20 @@ def install_gnina(install_path="/usr/local/bin/gnina", force=False):
         >>> # GNINA now available as 'gnina' command
     """
     import os
+    import shutil
 
     print("=== Installing GNINA ===")
 
-    if os.path.exists(install_path) and not force:
-        print(f"  ✓ GNINA already present at {install_path}")
-        return False
+    dataset_path = "/kaggle/input/gnina-bin/GNINA"
 
-    # Download GNINA v1.1
-    url = "https://github.com/gnina/gnina/releases/download/v1.1/gnina"
-    subprocess.run(["wget", "--progress=bar", url, "-O", install_path], check=True)
+    if not os.path.exists(dataset_path):
+        raise FileNotFoundError(f"GNINA dataset not found at {dataset_path}. Ensure 'ineptrobot/gnina-bin' is in dataset_sources.")
+
+    print(f"  ✓ Found GNINA dataset at {dataset_path}")
+
+    shutil.copy(dataset_path, install_path)
     subprocess.run(["chmod", "+x", install_path], check=True)
-
-    print(f"  ✓ GNINA installed to {install_path}")
+    print(f"  ✓ GNINA installed from dataset to {install_path}")
     return True
 
 
@@ -152,10 +147,7 @@ def verify_environment():
 
     # Check Python packages
     print("\n--- Python packages ---")
-    required_packages = [
-        "rdkit", "openmm", "pdbfixer", "Bio", "openbabel",
-        "MDAnalysis", "numpy", "pandas", "googleapiclient"
-    ]
+    required_packages = ["rdkit", "googleapiclient"]
 
     for pkg in required_packages:
         try:
@@ -168,6 +160,26 @@ def verify_environment():
             status["packages"][pkg] = {"available": False, "error": str(e)}
 
     return status
+
+
+def extract_ligand_zips(data_dir="/kaggle/working/ligands"):
+    """Extract all zip files in the ligand directory."""
+    import zipfile
+    import os
+    from pathlib import Path
+
+    p = Path(data_dir)
+    if not p.exists():
+        return
+        
+    print("\n=== Extracting Ligand Ensembles ===")
+    for z_path in p.glob("*.zip"):
+        try:
+            with zipfile.ZipFile(z_path, 'r') as zf:
+                zf.extractall(p)
+            print(f"  ✓ Extracted {z_path.name}")
+        except Exception as e:
+            print(f"  ✗ Failed to extract {z_path.name}: {e}")
 
 
 def setup_kaggle_environment(verify=True):
@@ -187,6 +199,7 @@ def setup_kaggle_environment(verify=True):
     install_apt_packages()
     install_pip_packages()
     install_gnina()
+    extract_ligand_zips()
 
     if verify:
         return verify_environment()

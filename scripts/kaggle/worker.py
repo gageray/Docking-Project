@@ -177,7 +177,7 @@ def main() -> None:
 
     if len(jobs) == 0:
         print("[*] No jobs to process. Exiting.")
-        sys.exit(0)
+        return
 
     # Initialize GPU queue
     global job_queue
@@ -192,7 +192,7 @@ def main() -> None:
         executor.map(worker.process_job, jobs)
 
     print("[*] All jobs processed successfully.")
-    sys.exit(0)
+    return
 
 
 if __name__ == "__main__":

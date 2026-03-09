@@ -24,7 +24,7 @@ from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 # Drive folder IDs
 DEFAULT_FOLDERS = {
     "push": "1_rJoAgziylRUQhWqXB2deTU1YW5_hBXM",
-    "outputs": "1_NG8tk4Cz5bhQXvMctHhIDUIWUzChsUn",
+    "outputs": "1u3U0R069wtYTLSBn2dRRaSXF74JPsoHk",
 }
 
 def authenticate_drive():
@@ -190,7 +190,10 @@ def run_worker():
 
 def generate_run_id():
     """Generate run ID in format YY-MM-DD-XX (hex increment)."""
-    now = datetime.now()
+    from datetime import timezone, timedelta
+    # Convert UTC to US Eastern (UTC-5 or UTC-4 depending on DST)
+    eastern = timezone(timedelta(hours=-5))
+    now = datetime.now(timezone.utc).astimezone(eastern)
     date_prefix = now.strftime("%y-%m-%d")
 
     print("\n=== Generating Run ID ===")

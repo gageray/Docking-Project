@@ -38,10 +38,26 @@ def load_box_metadata(box_config_path: Path) -> dict:
         data = json.load(f)
         return data if isinstance(data, dict) else {}
 
+import zipfile
+
 def discover_local_files(receptor_dir: Path, ligand_dir: Path):
     """Discover prepped receptors and ligands ready for docking."""
     receptors = [f.name for f in receptor_dir.glob("*_apo.pdbqt")] if receptor_dir.exists() else []
-    ligands = [f.name for f in ligand_dir.glob("*.sdf")] if ligand_dir.exists() else []
+    ligands = []
+    
+    if ligand_dir.exists():
+        # Add standard SDFs
+        ligands.extend([f.name for f in ligand_dir.glob("*.sdf")])
+        
+        # Peek inside Zip files for SDFs
+        for z_path in ligand_dir.glob("*.zip"):
+            try:
+                with zipfile.ZipFile(z_path, 'r') as zf:
+                    z_ligands = [name for name in zf.namelist() if name.endswith('.sdf')]
+                    ligands.extend(z_ligands)
+            except zipfile.BadZipFile:
+                print(f"[-] WARNING: Corrupt zip file {z_path}")
+                
     return receptors, ligands
 
 def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path, creds_path: str, gnina_profile: str = "thorough", task_type: str = "gnina_docking", max_workers: int = 2):
@@ -164,14 +180,10 @@ def main():
 
     upload_queue_to_drive(work_queue, creds)
 
-    print("[*] Pushing kernel to Kaggle...")
-    # NOTE: user must have kaggle installed locally and configured via ~/.kaggle/kaggle.json
-    import subprocess
-    try:
-        subprocess.run(["kaggle", "kernels", "push", "-p", str(kaggle_dir)], check=True)
-        print("[+] Kernel successfully pushed to Kaggle!")
-    except Exception as e:
-        print(f"[-] Failed to push kernel: {e}")
-    
+    print("[+] Work queue built and uploaded to Drive successfully!")
+    print(f"    Queue file: {work_queue}")
+    print(f"    Jobs: {len(job_data['jobs'])}")
+    print(f"\nNext step: Push kernel to Kaggle using build_kaggle_push.py")
+
 if __name__ == "__main__":
     main()

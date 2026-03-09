@@ -3,14 +3,14 @@
     "6X3U_aligned_apo.pdbqt"
   ],
   "ligands": [
-    "flumazenil_qm.sdf"
+    "flumazenil_qm_ensemble.zip"
   ],
   "boxes": [
     {
       "center": [
-        0.17697899043560028,
-        -1.8214330673217773,
-        -2.5882651805877686
+        0,
+        0,
+        0
       ],
       "size": [
         25.0,

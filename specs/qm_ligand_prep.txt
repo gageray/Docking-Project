@@ -1,0 +1,42 @@
+# QM Ligand Preparation and Ensemble Docking Specifications
+
+## 1. Initial Ligand Preparation (`qm_ligand_prep.py`)
+
+This stage establishes the correct protonation state and initial 3D geometry before QM optimization.
+
+* **Protonation State Assessment:** Uses the `qupkake_pka` module to predict pKa values and determine the correct protonation state and formal charge at the specified target pH. If no pH is specified, the input SMILES is processed as-is.
+* **3D Embedding:** Generates initial 3D coordinates using RDKit's ETKDGv3 algorithm.
+* **Sampling Modes:**
+* **Standard:** Standard ETKDGv3 embedding followed by MMFF optimization.
+* **Constrained:** Identifies the longest contiguous aliphatic chain (non-ring sp3 carbons) via DFS. If the chain is $\geq$ 4 carbons, it applies 180° dihedral constraints to straighten the tail. A `.cinp` file is generated to enforce position constraints on the tail atoms during the CREST run.
+
+
+
+## 2. QM Conformational Search (CREST)
+
+Generates the conformational landscape using semi-empirical QM.
+
+* **Method:** GFN2-xTB with the ALPB implicit solvent model (water).
+* **Ensemble Generation:** Runs a `--quick` conformational search with a default energy window (`--ewin`) of 6.0 kcal/mol.
+* **Output:** Generates `crest_conformers.xyz`, containing the full ensemble of low-energy conformers, ranked by energy.
+
+## 3. Ensemble Processing and Pruning (`crest_ensemble_to_sdf.py`)
+
+Converts the raw QM ensemble into a streamlined multi-structure SDF, pruning states that GNINA would redundantly sample.
+
+* **Extraction:** Parses `crest_conformers.xyz` to extract atomic coordinates and relative energies for all conformers in the 6.0 kcal/mol window.
+* **Topology Mapping:** Reconstructs the molecular graph by mapping the XYZ coordinates onto an RDKit template generated from the exact SMILES string, ensuring proper connectivity and bond orders.
+* **Butina Clustering (Pruning):**
+* Aligns all conformers to the global minimum geometry.
+* Calculates an RMSD distance matrix across all conformers.
+* Applies Butina clustering with a defined RMSD threshold (e.g., 1.0 Å to 1.5 Å).
+
+
+* **Filtering:** Retains only the lowest-energy conformer (centroid) from each cluster. This isolates distinct macrostates (e.g., ring flips, nitrogen inversions, cis/trans isomers) while stripping minor rotamers that differ only by rotatable bond torsions.
+
+## 4. Docking Execution
+
+The final multi-structure SDF is passed to GNINA.
+
+* **Multi-Seed Input:** GNINA treats the pruned multi-structure SDF as a set of distinct starting conformations.
+* **Resource Allocation:** By stripping redundant rotamers beforehand, exhaustiveness cycles are focused entirely on exploring the pocket from distinct, QM-validated conformational basins. GNINA natively handles the local rotatable bond sampling for each basin.
