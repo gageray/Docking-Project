@@ -104,13 +104,16 @@ def process_and_convert(pdb_path, meta_path, out_dir):
         return
 
     # Convert the accurately protonated PDB to PDBQT using Meeko
+    # CRITICAL: Use --read_pdb (NOT -i) to bypass ProDy coordinate normalization
+    # ProDy's "smart" behavior re-centers coordinates, breaking our alignment
     out_basename = os.path.splitext(final_pdbqt)[0]
-    
+
     meeko_cmd = [
         "mk_prepare_receptor.py",
-        "-i", protonated_pdb,
+        "--read_pdb", protonated_pdb,  # Raw PDB reader - preserves coordinates
         "-o", out_basename,
-        "-p"
+        "-p",  # Write PDBQT output
+        "--charge_model", "gasteiger"  # Gasteiger charges for GNINA scoring
     ]
     
     try:

@@ -169,6 +169,49 @@ def main():
     print("      ✓ Uploaded to Drive push folder")
     print()
 
+    # Upload scripts to scripts/ folder
+    print("  Scripts:")
+    import sys
+    sys.path.insert(0, str(Path("scripts/kaggle").absolute()))
+    import drive_auth, drive_io
+    service, _ = drive_auth.setup_drive(creds, verify=False)
+    
+    DRIVE_PUSH_FOLDER = drive_auth.DEFAULT_FOLDERS["push"]
+    push_contents = drive_io.list_drive_folder(service, DRIVE_PUSH_FOLDER, verbose=False)
+    
+    scripts_folder_id = None
+    for item in push_contents:
+        if item["name"] == "scripts" and item["mimeType"] == "application/vnd.google-apps.folder":
+            scripts_folder_id = item["id"]
+            break
+            
+    if not scripts_folder_id:
+        folder_meta = {"name": "scripts", "mimeType": "application/vnd.google-apps.folder", "parents": [DRIVE_PUSH_FOLDER]}
+        scripts_folder_id = service.files().create(body=folder_meta, fields="id").execute()["id"]
+
+    kaggle_scripts = root / "scripts" / "kaggle"
+    kaggle_script_files = [
+        "setup_env.py",
+        "drive_auth.py",
+        "drive_io.py",
+        "worker.py",
+        "bootstrap.py",
+        "hardware_check.py"
+    ]
+
+    for script in kaggle_script_files:
+        src = kaggle_scripts / script
+        if src.exists():
+            drive_io.upload_to_drive(service, str(src), scripts_folder_id, overwrite=True)
+
+    # Upload gnina_runner.py from pipeline to scripts/ (flat structure)
+    pipeline_scripts = root / "scripts" / "pipeline"
+    gnina_runner = pipeline_scripts / "gnina_runner.py"
+    if gnina_runner.exists():
+        drive_io.upload_to_drive(service, str(gnina_runner), scripts_folder_id, overwrite=True)
+        
+    print()
+
     # Step 4: Push kernel to Kaggle with accelerator
     print(f"[4/4] Pushing kernel to Kaggle with {args.accelerator}...")
     try:

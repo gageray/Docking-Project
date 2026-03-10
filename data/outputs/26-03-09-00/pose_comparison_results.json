@@ -1,0 +1,1270 @@
+{
+  "receptor": "/mnt/c/Users/GOD/OneDrive - Santa Fe College/Ashwaganda/Docking/Docking Project/data/receptors/6X3U_aligned.pdb",
+  "reference_ligand": "FYP:Z",
+  "docked_path": "/mnt/c/Users/GOD/OneDrive - Santa Fe College/Ashwaganda/Docking/Docking Project/data/outputs/26-03-09-00",
+  "total_poses": 140,
+  "passing_poses": 0,
+  "best_rmsd": 3.8436007970431074,
+  "results": [
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 3.8436007970431074,
+      "gnina_score": 9.10904,
+      "cnn_score": 0.5749485493,
+      "cnn_affinity": 5.4056930542,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 3.880846827722955,
+      "gnina_score": -6.84623,
+      "cnn_score": 0.7307680249,
+      "cnn_affinity": 5.6040744781,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 3.8860872141374068,
+      "gnina_score": -6.85169,
+      "cnn_score": 0.7356253266,
+      "cnn_affinity": 5.6363339424,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 3.898459222299177,
+      "gnina_score": -6.88351,
+      "cnn_score": 0.850655973,
+      "cnn_affinity": 5.8215174675,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 3.9023569556393585,
+      "gnina_score": -6.52874,
+      "cnn_score": 0.7417928576,
+      "cnn_affinity": 5.6781144142,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 3.904156594209049,
+      "gnina_score": -6.44959,
+      "cnn_score": 0.7165123224,
+      "cnn_affinity": 5.5558457375,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 3.904705228785011,
+      "gnina_score": -7.62478,
+      "cnn_score": 0.6778060794,
+      "cnn_affinity": 5.4821372032,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 3.907111754581891,
+      "gnina_score": -1.15412,
+      "cnn_score": 0.7018294334,
+      "cnn_affinity": 5.3381266594,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 3.908410974715115,
+      "gnina_score": -6.91751,
+      "cnn_score": 0.8230210543,
+      "cnn_affinity": 5.8009266853,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 3.913365465639822,
+      "gnina_score": -7.05861,
+      "cnn_score": 0.7493827939,
+      "cnn_affinity": 5.7023873329,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 3.917250662903818,
+      "gnina_score": 7.43784,
+      "cnn_score": 0.4519144297,
+      "cnn_affinity": 4.1359591484,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 3.918734503881017,
+      "gnina_score": -6.7415,
+      "cnn_score": 0.8850724697,
+      "cnn_affinity": 5.970559597,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 3.9241576167776793,
+      "gnina_score": -7.20119,
+      "cnn_score": 0.8795794249,
+      "cnn_affinity": 6.0495963097,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 3.924276758643417,
+      "gnina_score": -6.88766,
+      "cnn_score": 0.7046311498,
+      "cnn_affinity": 5.662797451,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 3.926008678238323,
+      "gnina_score": -2.94267,
+      "cnn_score": 0.6655060053,
+      "cnn_affinity": 4.6648459435,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 3.9291999145654892,
+      "gnina_score": 7.47249,
+      "cnn_score": 0.5128620863,
+      "cnn_affinity": 5.5290808678,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.934233644873439,
+      "gnina_score": -8.20471,
+      "cnn_score": 0.9411160946,
+      "cnn_affinity": 6.2197670937,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 3.9381332290626965,
+      "gnina_score": -7.13901,
+      "cnn_score": 0.8884298801,
+      "cnn_affinity": 6.0004973412,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 3.938920353662519,
+      "gnina_score": -0.69035,
+      "cnn_score": 0.6849861741,
+      "cnn_affinity": 5.8494505882,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 3.945344199847811,
+      "gnina_score": -6.48351,
+      "cnn_score": 0.5927459598,
+      "cnn_affinity": 5.1643781662,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 3.950662175407682,
+      "gnina_score": -6.92764,
+      "cnn_score": 0.8659054637,
+      "cnn_affinity": 5.8645706177,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 3.9521497009831825,
+      "gnina_score": -7.21731,
+      "cnn_score": 0.7211837173,
+      "cnn_affinity": 5.8316607475,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.968781689839463,
+      "gnina_score": -8.23104,
+      "cnn_score": 0.955403924,
+      "cnn_affinity": 6.2373847961,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.970622301163251,
+      "gnina_score": -8.45945,
+      "cnn_score": 0.9573469162,
+      "cnn_affinity": 6.2406959534,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 3.974056883770528,
+      "gnina_score": -7.36761,
+      "cnn_score": 0.73237288,
+      "cnn_affinity": 5.8260045052,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.9788058750367328,
+      "gnina_score": -8.34141,
+      "cnn_score": 0.956476748,
+      "cnn_affinity": 6.2421097755,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 3.979092596423203,
+      "gnina_score": -5.80787,
+      "cnn_score": 0.8152566552,
+      "cnn_affinity": 5.8555417061,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.9813817439203323,
+      "gnina_score": -8.28945,
+      "cnn_score": 0.9575606585,
+      "cnn_affinity": 6.2501831055,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.983736457625267,
+      "gnina_score": -8.30484,
+      "cnn_score": 0.9574550986,
+      "cnn_affinity": 6.2604994774,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 0,
+      "rmsd": 3.986623151534111,
+      "gnina_score": -8.26568,
+      "cnn_score": 0.9575070143,
+      "cnn_affinity": 6.2565398216,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 3.988122184874587,
+      "gnina_score": 8.57397,
+      "cnn_score": 0.4660174549,
+      "cnn_affinity": 4.1401295662,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 3.988516719115453,
+      "gnina_score": -7.32276,
+      "cnn_score": 0.7164043188,
+      "cnn_affinity": 5.799238205,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 3.9898337933587493,
+      "gnina_score": -7.3511,
+      "cnn_score": 0.72907269,
+      "cnn_affinity": 5.8220334053,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 3.9907560172127066,
+      "gnina_score": -7.35477,
+      "cnn_score": 0.743078351,
+      "cnn_affinity": 5.8591499329,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.001742545230215,
+      "gnina_score": -0.33061,
+      "cnn_score": 0.6280321479,
+      "cnn_affinity": 4.9826979637,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.007857845474643,
+      "gnina_score": 14.79938,
+      "cnn_score": 0.6100223064,
+      "cnn_affinity": 5.5097270012,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.017512129503858,
+      "gnina_score": 5.48518,
+      "cnn_score": 0.6138133407,
+      "cnn_affinity": 5.7391204834,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.020395224385656,
+      "gnina_score": -6.70245,
+      "cnn_score": 0.6270000339,
+      "cnn_affinity": 5.3413524628,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.028735271351349,
+      "gnina_score": -7.15657,
+      "cnn_score": 0.8804910183,
+      "cnn_affinity": 5.8983530998,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.031917075023094,
+      "gnina_score": 11.15907,
+      "cnn_score": 0.6268209815,
+      "cnn_affinity": 4.6786942482,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.036131256524066,
+      "gnina_score": -1.5749,
+      "cnn_score": 0.855439961,
+      "cnn_affinity": 6.0571417809,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 4.03956607556084,
+      "gnina_score": -5.68266,
+      "cnn_score": 0.7630562782,
+      "cnn_affinity": 6.1351742744,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.051128707183102,
+      "gnina_score": 19.70754,
+      "cnn_score": 0.582067728,
+      "cnn_affinity": 5.5720229149,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.051300396790667,
+      "gnina_score": -6.50536,
+      "cnn_score": 0.5571118593,
+      "cnn_affinity": 4.9465208054,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 4.052079790019667,
+      "gnina_score": -6.03178,
+      "cnn_score": 0.7760535479,
+      "cnn_affinity": 6.1115136147,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.0555498599088065,
+      "gnina_score": -0.77754,
+      "cnn_score": 0.5565592051,
+      "cnn_affinity": 5.9435572624,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 4.063645617665725,
+      "gnina_score": -6.25599,
+      "cnn_score": 0.8275123835,
+      "cnn_affinity": 6.0640926361,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 4.066144104425153,
+      "gnina_score": -5.86744,
+      "cnn_score": 0.8049433231,
+      "cnn_affinity": 6.0585231781,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 4.066261848055872,
+      "gnina_score": 8.48877,
+      "cnn_score": 0.61457932,
+      "cnn_affinity": 4.9450025558,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 4.0680869696298,
+      "gnina_score": -5.88645,
+      "cnn_score": 0.8308093548,
+      "cnn_affinity": 6.0934300423,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 4.068418074291115,
+      "gnina_score": 3.35734,
+      "cnn_score": 0.4967503846,
+      "cnn_affinity": 4.7591609955,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.068691622422847,
+      "gnina_score": -6.8357,
+      "cnn_score": 0.928098619,
+      "cnn_affinity": 6.1296043396,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.0712926709268284,
+      "gnina_score": 22.33683,
+      "cnn_score": 0.5762056708,
+      "cnn_affinity": 5.6001801491,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 4.085845839930007,
+      "gnina_score": -5.78114,
+      "cnn_score": 0.8062629104,
+      "cnn_affinity": 6.0720043182,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 4.086728582799219,
+      "gnina_score": -5.37319,
+      "cnn_score": 0.6990975142,
+      "cnn_affinity": 5.9227700233,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.099890779357283,
+      "gnina_score": 13.8629,
+      "cnn_score": 0.5642547011,
+      "cnn_affinity": 4.7582840919,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.1000247600083295,
+      "gnina_score": 22.24932,
+      "cnn_score": 0.5634782314,
+      "cnn_affinity": 4.784078598,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 4.100822304135245,
+      "gnina_score": -2.35601,
+      "cnn_score": 0.6508500576,
+      "cnn_affinity": 6.0645737648,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 4.105403284521556,
+      "gnina_score": -6.08976,
+      "cnn_score": 0.7882994413,
+      "cnn_affinity": 6.1362519264,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 4.106694622174291,
+      "gnina_score": -5.16425,
+      "cnn_score": 0.7065733671,
+      "cnn_affinity": 5.9751973152,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.116256524896205,
+      "gnina_score": 6.09614,
+      "cnn_score": 0.4857681394,
+      "cnn_affinity": 4.5892772675,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 4.122691405603484,
+      "gnina_score": -6.18193,
+      "cnn_score": 0.7086395621,
+      "cnn_affinity": 4.9595217705,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.124217930465585,
+      "gnina_score": 10.16933,
+      "cnn_score": 0.5988763571,
+      "cnn_affinity": 4.7523856163,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 4.129532945164975,
+      "gnina_score": 81.46524,
+      "cnn_score": 0.587149322,
+      "cnn_affinity": 5.0302028656,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.1330400328986405,
+      "gnina_score": -7.38233,
+      "cnn_score": 0.9036259055,
+      "cnn_affinity": 6.1642284393,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.138989413182148,
+      "gnina_score": 74.8301,
+      "cnn_score": 0.5727947354,
+      "cnn_affinity": 4.7025699615,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.139139793592424,
+      "gnina_score": 5.5314,
+      "cnn_score": 0.5570735931,
+      "cnn_affinity": 5.0829277039,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.139982986677725,
+      "gnina_score": 9.44998,
+      "cnn_score": 0.5880089998,
+      "cnn_affinity": 4.1112003326,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.142650618608012,
+      "gnina_score": -6.6399,
+      "cnn_score": 0.8762377501,
+      "cnn_affinity": 5.6851916313,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.146252718663561,
+      "gnina_score": 2.17013,
+      "cnn_score": 0.528229177,
+      "cnn_affinity": 4.530482769,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 9,
+      "rmsd": 4.148061988716434,
+      "gnina_score": -0.66351,
+      "cnn_score": 0.6564304233,
+      "cnn_affinity": 5.4845347404,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.148164162190152,
+      "gnina_score": 9.28295,
+      "cnn_score": 0.5645355582,
+      "cnn_affinity": 5.1365513802,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 4.154369126356782,
+      "gnina_score": -1.24253,
+      "cnn_score": 0.7956856489,
+      "cnn_affinity": 5.2074608803,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 4.154807979042537,
+      "gnina_score": 71.87605,
+      "cnn_score": 0.5884642601,
+      "cnn_affinity": 4.5048766136,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.156079304439531,
+      "gnina_score": 4.91765,
+      "cnn_score": 0.541293025,
+      "cnn_affinity": 5.4501795769,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 4.162181000849368,
+      "gnina_score": -6.44501,
+      "cnn_score": 0.6401883364,
+      "cnn_affinity": 5.6970734596,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.1692339445919595,
+      "gnina_score": -5.84274,
+      "cnn_score": 0.6141485572,
+      "cnn_affinity": 5.5195145607,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.174169525725181,
+      "gnina_score": 19.18906,
+      "cnn_score": 0.5497043133,
+      "cnn_affinity": 4.5372848511,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.177817256047876,
+      "gnina_score": 7.18688,
+      "cnn_score": 0.5171577334,
+      "cnn_affinity": 4.9138221741,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 4.182922559858515,
+      "gnina_score": 58.31039,
+      "cnn_score": 0.5102760196,
+      "cnn_affinity": 4.7869420052,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.19156340382844,
+      "gnina_score": -0.31806,
+      "cnn_score": 0.6701040864,
+      "cnn_affinity": 5.5059928894,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.192396177768798,
+      "gnina_score": -5.25786,
+      "cnn_score": 0.5461733341,
+      "cnn_affinity": 5.4733099937,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.193268584239756,
+      "gnina_score": 7.03537,
+      "cnn_score": 0.5827546716,
+      "cnn_affinity": 4.6552462578,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.194494590103881,
+      "gnina_score": 16.08156,
+      "cnn_score": 0.6438783407,
+      "cnn_affinity": 5.8828625679,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.199798447789051,
+      "gnina_score": 8.3927,
+      "cnn_score": 0.4855076075,
+      "cnn_affinity": 5.4316239357,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.211878377356127,
+      "gnina_score": 0.52721,
+      "cnn_score": 0.4733015299,
+      "cnn_affinity": 4.7478165627,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 4.216382515046315,
+      "gnina_score": 6.63965,
+      "cnn_score": 0.7245206237,
+      "cnn_affinity": 5.879152298,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 4.219098930076944,
+      "gnina_score": 7.30715,
+      "cnn_score": 0.7390269041,
+      "cnn_affinity": 5.8059921265,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.224023979044315,
+      "gnina_score": 47.41984,
+      "cnn_score": 0.5689397454,
+      "cnn_affinity": 4.3338499069,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.224824616193126,
+      "gnina_score": -5.61737,
+      "cnn_score": 0.6348316073,
+      "cnn_affinity": 5.9302783012,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 4.229925073942132,
+      "gnina_score": 17.29827,
+      "cnn_score": 0.6873940825,
+      "cnn_affinity": 5.4585514069,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.230938202702185,
+      "gnina_score": 10.25568,
+      "cnn_score": 0.658975482,
+      "cnn_affinity": 5.7471694946,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.232133974246123,
+      "gnina_score": 66.70641,
+      "cnn_score": 0.644595921,
+      "cnn_affinity": 4.9462814331,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 4.232962983915681,
+      "gnina_score": 5.01929,
+      "cnn_score": 0.5064572096,
+      "cnn_affinity": 4.2465624809,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.2361325060560056,
+      "gnina_score": 18.9685,
+      "cnn_score": 0.5386888385,
+      "cnn_affinity": 5.0783371925,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.241796820679155,
+      "gnina_score": -5.55479,
+      "cnn_score": 0.553164959,
+      "cnn_affinity": 5.5144786835,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.24207545681851,
+      "gnina_score": -5.33534,
+      "cnn_score": 0.5661718845,
+      "cnn_affinity": 5.5235571861,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 4.24774457102127,
+      "gnina_score": -5.9184,
+      "cnn_score": 0.5421417356,
+      "cnn_affinity": 5.468568325,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 4.266177063866227,
+      "gnina_score": -4.99885,
+      "cnn_score": 0.8361358643,
+      "cnn_affinity": 5.9094967842,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.266751905365238,
+      "gnina_score": -7.10428,
+      "cnn_score": 0.6519096494,
+      "cnn_affinity": 5.5347218513,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.267561350459648,
+      "gnina_score": -5.251,
+      "cnn_score": 0.6688864827,
+      "cnn_affinity": 5.5758109093,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.273390283751684,
+      "gnina_score": -7.16898,
+      "cnn_score": 0.9121326804,
+      "cnn_affinity": 6.1871600151,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.279023705508845,
+      "gnina_score": 25.13866,
+      "cnn_score": 0.6112836003,
+      "cnn_affinity": 5.2065649033,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.281580054079201,
+      "gnina_score": -6.21934,
+      "cnn_score": 0.6121659875,
+      "cnn_affinity": 5.3887953758,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 4.286187570290286,
+      "gnina_score": 14.04364,
+      "cnn_score": 0.6018174887,
+      "cnn_affinity": 4.3575415611,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.288013239163022,
+      "gnina_score": -7.30273,
+      "cnn_score": 0.9391923547,
+      "cnn_affinity": 6.0636367798,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.288374869124292,
+      "gnina_score": -6.63864,
+      "cnn_score": 0.890450418,
+      "cnn_affinity": 6.2759718895,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.291248678898359,
+      "gnina_score": -7.5778,
+      "cnn_score": 0.9284012318,
+      "cnn_affinity": 5.9999251366,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 14,
+      "rmsd": 4.2961906115768995,
+      "gnina_score": -5.58063,
+      "cnn_score": 0.5455238223,
+      "cnn_affinity": 5.4113316536,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 19,
+      "rmsd": 4.297258222012067,
+      "gnina_score": 15.49533,
+      "cnn_score": 0.4483135939,
+      "cnn_affinity": 4.2867722511,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.298367273095638,
+      "gnina_score": -7.40292,
+      "cnn_score": 0.9208515882,
+      "cnn_affinity": 5.9875473976,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 17,
+      "rmsd": 4.299503006589458,
+      "gnina_score": 50.96402,
+      "cnn_score": 0.4790223837,
+      "cnn_affinity": 4.4427037239,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 4.30095862549566,
+      "gnina_score": -5.71549,
+      "cnn_score": 0.7661716342,
+      "cnn_affinity": 5.7136797905,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.301480945680776,
+      "gnina_score": -6.38628,
+      "cnn_score": 0.8973568678,
+      "cnn_affinity": 6.2613997459,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.304492230958735,
+      "gnina_score": -6.17076,
+      "cnn_score": 0.8755433559,
+      "cnn_affinity": 6.1721534729,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.305990806289438,
+      "gnina_score": -6.54062,
+      "cnn_score": 0.8302001953,
+      "cnn_affinity": 5.9953913689,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.306455090415104,
+      "gnina_score": -7.40521,
+      "cnn_score": 0.917801857,
+      "cnn_affinity": 5.9881477356,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.3065621876111955,
+      "gnina_score": -7.52962,
+      "cnn_score": 0.9208105803,
+      "cnn_affinity": 6.011554718,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 7,
+      "rmsd": 4.307133474490229,
+      "gnina_score": -6.57561,
+      "cnn_score": 0.826071322,
+      "cnn_affinity": 5.8322710991,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.311611921551565,
+      "gnina_score": -7.80539,
+      "cnn_score": 0.9103627205,
+      "cnn_affinity": 5.9820384979,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 15,
+      "rmsd": 4.311770067370204,
+      "gnina_score": 74.49586,
+      "cnn_score": 0.5747523308,
+      "cnn_affinity": 4.9959464073,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 4.313480469144599,
+      "gnina_score": -7.45589,
+      "cnn_score": 0.8868068457,
+      "cnn_affinity": 6.126144886,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_7_out.sdf",
+      "pose_idx": 1,
+      "rmsd": 4.313807021091381,
+      "gnina_score": -7.52827,
+      "cnn_score": 0.9171028137,
+      "cnn_affinity": 5.9706439972,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 5,
+      "rmsd": 4.3179215802261215,
+      "gnina_score": -6.83543,
+      "cnn_score": 0.8529905677,
+      "cnn_affinity": 5.9531369209,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 18,
+      "rmsd": 4.324480514436072,
+      "gnina_score": 12.99751,
+      "cnn_score": 0.5099394321,
+      "cnn_affinity": 4.6351418495,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 3,
+      "rmsd": 4.3265944215022145,
+      "gnina_score": -6.74582,
+      "cnn_score": 0.894708097,
+      "cnn_affinity": 6.1093597412,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.327912482892566,
+      "gnina_score": -7.70224,
+      "cnn_score": 0.8359150887,
+      "cnn_affinity": 6.0296974182,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 10,
+      "rmsd": 4.332215857478019,
+      "gnina_score": -6.85682,
+      "cnn_score": 0.6614302397,
+      "cnn_affinity": 5.5174889565,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_4_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.334111818790696,
+      "gnina_score": -6.82102,
+      "cnn_score": 0.9146009684,
+      "cnn_affinity": 6.2317752838,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.3344808680268745,
+      "gnina_score": -7.02725,
+      "cnn_score": 0.9235110879,
+      "cnn_affinity": 6.2474446297,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_1_out.sdf",
+      "pose_idx": 11,
+      "rmsd": 4.334513756231836,
+      "gnina_score": -6.98295,
+      "cnn_score": 0.6688970923,
+      "cnn_affinity": 5.4967422485,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.334735087108827,
+      "gnina_score": -6.28747,
+      "cnn_score": 0.5788461566,
+      "cnn_affinity": 5.2742810249,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.33516378862312,
+      "gnina_score": -6.40284,
+      "cnn_score": 0.9151188731,
+      "cnn_affinity": 6.3247885704,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 12,
+      "rmsd": 4.337114680234181,
+      "gnina_score": -6.75563,
+      "cnn_score": 0.6600622535,
+      "cnn_affinity": 5.5106635094,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.3376821932714815,
+      "gnina_score": -6.36883,
+      "cnn_score": 0.9114524722,
+      "cnn_affinity": 6.3236923218,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 6,
+      "rmsd": 4.337973934551886,
+      "gnina_score": -7.50731,
+      "cnn_score": 0.8495004177,
+      "cnn_affinity": 6.069732666,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_10_out.sdf",
+      "pose_idx": 2,
+      "rmsd": 4.34506369304021,
+      "gnina_score": -6.46566,
+      "cnn_score": 0.9001382589,
+      "cnn_affinity": 6.2649497986,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 13,
+      "rmsd": 4.34968111855368,
+      "gnina_score": -7.28906,
+      "cnn_score": 0.6451542377,
+      "cnn_affinity": 5.3841362,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_9_out.sdf",
+      "pose_idx": 8,
+      "rmsd": 4.356233745235065,
+      "gnina_score": -5.34347,
+      "cnn_score": 0.7764282227,
+      "cnn_affinity": 5.8753228188,
+      "pass_threshold": false
+    },
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_8_out.sdf",
+      "pose_idx": 16,
+      "rmsd": 4.362361738508018,
+      "gnina_score": 4.64084,
+      "cnn_score": 0.5723158121,
+      "cnn_affinity": 4.7419734001,
+      "pass_threshold": false
+    }
+  ]
+}

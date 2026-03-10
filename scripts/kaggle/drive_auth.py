@@ -16,7 +16,7 @@ DEFAULT_FOLDERS = {
     "push": "1_rJoAgziylRUQhWqXB2deTU1YW5_hBXM",       # docking/push/ (staged data for Kaggle)
     "receptors": "1H3zFxbwk_GsTu65vmw8ZIsC6ykQRsNFI",  # docking/receptors/
     "ligands": "1Y-9eDS9PgArkAllh3VrApTebqdWYLATH",    # docking/ligands/
-    "outputs": "1_NG8tk4Cz5bhQXvMctHhIDUIWUzChsUn",    # docking/outputs/
+    "outputs": "1u3U0R069wtYTLSBn2dRRaSXF74JPsoHk",    # docking/outputs/
     "validation": "1m9YVLgDzjX8DCCB-Zojej_inIxHd9vEJ"  # docking/validation/
 }
 

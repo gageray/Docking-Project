@@ -1,0 +1,235 @@
+{
+  "receptor": "data/receptors/prepped/6X3U_aligned_apo.pdbqt",
+  "ligand": "data/analysis/best_pose_conf1_pose14.sdf",
+  "threshold": 0.6,
+  "summary": {
+    "total_clashes": 22,
+    "h_clashes": 5,
+    "heavy_clashes": 17,
+    "worst_overlap": 1.7332620259886966,
+    "avg_overlap": 0.9177300077152192,
+    "h_clash_percentage": 22.727272727272727
+  },
+  "top_clashes": [
+    {
+      "receptor_atom": "ARG138:E:HH22",
+      "receptor_element": "H",
+      "ligand_atom": "Lig_C11",
+      "ligand_element": "C",
+      "distance": 1.1667379740113033,
+      "vdw_sum": 2.9,
+      "overlap": 1.7332620259886966,
+      "is_h_clash": true
+    },
+    {
+      "receptor_atom": "ARG138:E:HH22",
+      "receptor_element": "H",
+      "ligand_atom": "Lig_C12",
+      "ligand_element": "C",
+      "distance": 1.4686558820908315,
+      "vdw_sum": 2.9,
+      "overlap": 1.4313441179091684,
+      "is_h_clash": true
+    },
+    {
+      "receptor_atom": "ARG138:E:NH2",
+      "receptor_element": "N",
+      "ligand_atom": "Lig_C12",
+      "ligand_element": "C",
+      "distance": 1.949963204781054,
+      "vdw_sum": 3.25,
+      "overlap": 1.300036795218946,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "LEU140:E:CD2",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C15",
+      "ligand_element": "C",
+      "distance": 2.2727579193570087,
+      "vdw_sum": 3.4,
+      "overlap": 1.1272420806429913,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:NH2",
+      "receptor_element": "N",
+      "ligand_atom": "Lig_C11",
+      "ligand_element": "C",
+      "distance": 2.1410516808335105,
+      "vdw_sum": 3.25,
+      "overlap": 1.1089483191664895,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "THR81:E:CG2",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_O9",
+      "ligand_element": "O",
+      "distance": 2.1967180315188384,
+      "vdw_sum": 3.2199999999999998,
+      "overlap": 1.0232819684811614,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:HH22",
+      "receptor_element": "H",
+      "ligand_atom": "Lig_C10",
+      "ligand_element": "C",
+      "distance": 1.9277171680513716,
+      "vdw_sum": 2.9,
+      "overlap": 0.9722828319486283,
+      "is_h_clash": true
+    },
+    {
+      "receptor_atom": "THR81:E:CG2",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C8",
+      "ligand_element": "C",
+      "distance": 2.4410006964357884,
+      "vdw_sum": 3.4,
+      "overlap": 0.9589993035642115,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:NE",
+      "receptor_element": "N",
+      "ligand_atom": "Lig_F13",
+      "ligand_element": "F",
+      "distance": 2.075165923486602,
+      "vdw_sum": 3.02,
+      "overlap": 0.944834076513398,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:CZ",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_F13",
+      "ligand_element": "F",
+      "distance": 2.2944706165039466,
+      "vdw_sum": 3.17,
+      "overlap": 0.8755293834960534,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:CZ",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C12",
+      "ligand_element": "C",
+      "distance": 2.548462144117507,
+      "vdw_sum": 3.4,
+      "overlap": 0.8515378558824929,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ALA79:E:CB",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_O18",
+      "ligand_element": "O",
+      "distance": 2.3688697853617873,
+      "vdw_sum": 3.2199999999999998,
+      "overlap": 0.8511302146382125,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "LEU140:E:CD2",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C14",
+      "ligand_element": "C",
+      "distance": 2.630450915717683,
+      "vdw_sum": 3.4,
+      "overlap": 0.7695490842823167,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "TRP134:E:CH2",
+      "receptor_element": "A",
+      "ligand_atom": "Lig_C14",
+      "ligand_element": "C",
+      "distance": 2.6409331343296065,
+      "vdw_sum": 3.4,
+      "overlap": 0.7590668656703934,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:HE",
+      "receptor_element": "H",
+      "ligand_atom": "Lig_F13",
+      "ligand_element": "F",
+      "distance": 1.9419840395842607,
+      "vdw_sum": 2.67,
+      "overlap": 0.7280159604157392,
+      "is_h_clash": true
+    },
+    {
+      "receptor_atom": "ARG138:E:NH2",
+      "receptor_element": "N",
+      "ligand_atom": "Lig_C14",
+      "ligand_element": "C",
+      "distance": 2.535125917977251,
+      "vdw_sum": 3.25,
+      "overlap": 0.714874082022749,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ASP56:E:OD2",
+      "receptor_element": "O",
+      "ligand_atom": "Lig_C7",
+      "ligand_element": "C",
+      "distance": 2.517045208175649,
+      "vdw_sum": 3.2199999999999998,
+      "overlap": 0.7029547918243506,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ASP56:E:CB",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_O18",
+      "ligand_element": "O",
+      "distance": 2.5193348447556545,
+      "vdw_sum": 3.2199999999999998,
+      "overlap": 0.7006651552443453,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "LEU140:E:CD1",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C5",
+      "ligand_element": "C",
+      "distance": 2.7119758940669065,
+      "vdw_sum": 3.4,
+      "overlap": 0.6880241059330934,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "LEU140:E:CD1",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_C16",
+      "ligand_element": "C",
+      "distance": 2.7134526290318766,
+      "vdw_sum": 3.4,
+      "overlap": 0.6865473709681233,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "LYS184:E:CE",
+      "receptor_element": "C",
+      "ligand_atom": "Lig_O9",
+      "ligand_element": "O",
+      "distance": 2.575027477523298,
+      "vdw_sum": 3.2199999999999998,
+      "overlap": 0.6449725224767016,
+      "is_h_clash": false
+    },
+    {
+      "receptor_atom": "ARG138:E:HE",
+      "receptor_element": "H",
+      "ligand_atom": "Lig_C11",
+      "ligand_element": "C",
+      "distance": 2.2830387425534417,
+      "vdw_sum": 2.9,
+      "overlap": 0.6169612574465582,
+      "is_h_clash": true
+    }
+  ]
+}
