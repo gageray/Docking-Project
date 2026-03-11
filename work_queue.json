@@ -1,12 +1,72 @@
 {
   "task_type": "gnina_docking",
   "gnina_profile": "validation",
-  "max_workers": 1,
-  "generated_at": "2026-03-09T19:19:13.080304",
+  "max_workers": 2,
+  "generated_at": "2026-03-10T00:14:39.975491",
   "jobs": [
     {
-      "receptor": "6X3U_aligned_apo_heavy.pdbqt",
-      "ligand": "flumazenil_qm_ensemble_conf_1_heavy.sdf",
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_1.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_4.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_7.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_8.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_9.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_10.sdf",
+      "cx": 0,
+      "cy": 0,
+      "cz": 0,
+      "sx": 15,
+      "sy": 15,
+      "sz": 15
+    },
+    {
+      "receptor": "6X3U_aligned_apo.pdbqt",
+      "ligand": "flumazenil_qm_ensemble_conf_11.sdf",
       "cx": 0,
       "cy": 0,
       "cz": 0,

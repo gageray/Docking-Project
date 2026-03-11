@@ -1,0 +1,16 @@
+{
+  "receptor": "data/receptors/6X3U_aligned.pdb",
+  "reference_ligand": "FYP:Z",
+  "docked_path": "data/outputs/26-03-09-01",
+  "total_poses": 580,
+  "passing_poses": 0,
+  "best_rmsd": 4.307077862415788,
+  "results": [
+    {
+      "source_file": "6X3U_aligned_apo_flumazenil_qm_ensemble_conf_11_out.sdf",
+      "pose_idx": 4,
+      "rmsd": 4.307077862415788,
+      "gnina_score": -7.14666,
+      "cnn_score": 0.8900829554,
+      "cnn_affinity": 6.0073490143,
+      "pass_threshold": 

@@ -53,7 +53,7 @@ class GNINAConfig:
     def validation(cls) -> 'GNINAConfig':
         """Max Power - Used for single-ligand critical runs"""
         return cls(
-            exhaustiveness=128,
+            exhaustiveness=64,
             num_modes=100,
             cnn_scoring="refinement"
         )
