@@ -1,0 +1,16 @@
+Ligand: flumazenil_test
+Target pH: 7.4
+
+Input SMILES:
+CCOC(=O)c1ncn2c1CN(C)C(=O)c1cc(F)ccc1-2
+
+Corrected SMILES (pH 7.4):
+CCOC(=O)c1ncn2c1CN(C)C(=O)c1cc(F)ccc1-2
+
+Formal Charge: +0
+
+Predicted pKa Values (QupKake):
+  Atom 6 (N): 3.59
+
+Heavy Atoms: 22
+Molecular Weight: 303.29

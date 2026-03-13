@@ -71,7 +71,12 @@ def run_crest_job(name: str, mol: Chem.Mol, workdir: Path, outdir: Path, threads
                   formal_charge: int = 0, energy_window: float = 6.0, cinp_path: Path = None):
     """Executes the CREST binary, parses the output, and saves the SDF."""
     seed_xyz = workdir / "seed.xyz"
+    seed_sdf = workdir / "seed.sdf"
     conf = mol.GetConformer()
+
+    # Save seed SDF for use by crest_ensemble_to_mol2.py (preserves atom indexing)
+    with Chem.SDWriter(str(seed_sdf)) as w:
+        w.write(mol)
 
     with open(seed_xyz, 'w') as f:
         f.write(f"{mol.GetNumAtoms()}\n")
@@ -116,25 +121,33 @@ def run_crest_job(name: str, mol: Chem.Mol, workdir: Path, outdir: Path, threads
     if not best_xyz.exists():
          print(f"[{name}] ERROR: Output crest_best.xyz not found.")
          sys.exit(1)
-         
+
     with open(best_xyz) as f:
         lines = f.readlines()
-        
+
     if len(lines) >= mol.GetNumAtoms() + 2:
         new_conf = Chem.Conformer(mol.GetNumAtoms())
         for i in range(mol.GetNumAtoms()):
             parts = lines[i+2].split()
             x, y, z = map(float, parts[1:4])
             new_conf.SetAtomPosition(i, (x, y, z))
-            
+
         mol.RemoveAllConformers()
         mol.AddConformer(new_conf)
-        
-        out_sdf = outdir / f"{name}_qm.sdf"
-        writer = Chem.SDWriter(str(out_sdf))
-        writer.write(mol)
-        writer.close()
-        print(f"[{name}] Successfully exported QM-optimized ligand to {out_sdf}")
+
+        # Use Meeko Python API to convert directly to PDBQT (preserves aromatic atom types)
+        try:
+            from meeko import MoleculePreparation
+            out_pdbqt = outdir / f"{name}_qm.pdbqt"
+            preparator = MoleculePreparation(flexibility_builder=None)  # Rigid body
+            preparator.prepare(mol)
+            pdbqt_content = preparator.write_pdbqt_string()
+            with open(out_pdbqt, 'w') as f:
+                f.write(pdbqt_content)
+            print(f"[{name}] Successfully exported QM-optimized ligand to {out_pdbqt}")
+        except ImportError:
+            print(f"[{name}] ERROR: Meeko not available. Install with: conda install -c conda-forge meeko")
+            sys.exit(1)
 
 def process_ligand(args):
     """Generates the 3D seed and routes to standard or constrained QM search."""

@@ -143,7 +143,7 @@ class GNINARunner:
 
         Args:
             receptor_path: Path to receptor PDBQT file
-            ligand_path: Path to ligand SDF file
+            ligand_path: Path to ligand PDBQT file
             output_path: Path for output SDF file
             box_params: Dictionary with center_x, center_y, center_z, size_x, size_y, size_z
             env_vars: Optional environment variables (e.g., CUDA_VISIBLE_DEVICES)
@@ -421,7 +421,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run GNINA docking")
     parser.add_argument("--receptor", required=True, help="Receptor PDBQT file")
-    parser.add_argument("--ligand", required=True, help="Ligand SDF file")
+    parser.add_argument("--ligand", required=True, help="Ligand PDBQT file")
     parser.add_argument("--output", required=True, help="Output SDF file")
     parser.add_argument("--profile", default="standard", choices=["quick_screening", "standard", "thorough", "validation"], help="GNINA configuration profile")
     parser.add_argument("--center-x", type=float, required=True, help="Box center X")

@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 """
-Convert CREST conformer ensemble (XYZ) to multi-structure SDF file.
-Preserves all conformers from the CREST output.
+Convert CREST conformer ensemble (XYZ) to PDBQT zip archive.
+Preserves all conformers from CREST with aromatic atom types via Meeko.
 
 Usage:
-    python crest_ensemble_to_sdf.py -i crest_conformers.xyz -o output.sdf --smiles "SMILES_STRING"
+    python crest_ensemble_to_mol2.py -i crest_conformers.xyz -o output.zip --smiles "SMILES_STRING"
 """
 
 import argparse
 import sys
 import zipfile
-import io
 from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem import rdMolAlign
 from rdkit.ML.Cluster import Butina
+
+try:
+    from meeko import MoleculePreparation
+    MEEKO_AVAILABLE = True
+except ImportError:
+    MEEKO_AVAILABLE = False
+    print("ERROR: Meeko not available. Install with: conda install -c conda-forge meeko")
+    sys.exit(1)
 
 def prune_redundant_conformers(ensemble_mol, rmsd_thresh):
     """
@@ -69,25 +76,26 @@ def parse_xyz_ensemble(xyz_file):
     return conformers
 
 
-def xyz_to_sdf(xyz_file, output_sdf, smiles, prune=False, rmsd_thresh=1.0):
-    """Convert CREST XYZ ensemble to multi-structure SDF.
+def xyz_to_pdbqt(xyz_file, output_zip, smiles, prune=False, rmsd_thresh=1.0):
+    """Convert CREST XYZ ensemble to PDBQT zip archive via Meeko.
 
     Args:
         xyz_file: Path to crest_conformers.xyz
-        output_sdf: Path to output SDF file
-        smiles: SMILES string for the molecule (defines connectivity)
+        output_zip: Path to output zip file (will contain PDBQT files)
+        smiles: SMILES string (defines connectivity and aromaticity)
     """
     # Parse XYZ file
     conformers = parse_xyz_ensemble(xyz_file)
     print(f"[*] Parsed {len(conformers)} conformers from {xyz_file}")
 
-    # Create RDKit molecule from SMILES
+    # Build template strictly from SMILES to map aromaticity and connectivity
+    # Uses same RDKit logic as qm_ligand_prep.py, ensuring identical atom indexing
     mol_template = Chem.MolFromSmiles(smiles)
     if mol_template is None:
         print(f"ERROR: Invalid SMILES: {smiles}")
         sys.exit(1)
-
     mol_template = Chem.AddHs(mol_template)
+
     print(f"[*] Template molecule: {mol_template.GetNumAtoms()} atoms")
 
     # Verify atom count matches
@@ -113,17 +121,21 @@ def xyz_to_sdf(xyz_file, output_sdf, smiles, prune=False, rmsd_thresh=1.0):
         keep_ids = list(range(len(conformers)))
 
     # Ensure output has .zip extension
-    out_path = Path(output_sdf)
+    out_path = Path(output_zip)
     if out_path.suffix != '.zip':
         out_path = out_path.with_suffix('.zip')
+
+    # Initialize Meeko preparator
+    # Default Meeko will add rotatable bonds, but GNINA can handle QM conformers
+    preparator = MoleculePreparation()
 
     with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for cid in keep_ids:
             energy, coords, elements = conformers[cid]
-            
+
             out_mol = Chem.Mol(mol_template)
             out_mol.RemoveAllConformers()
-            
+
             conf = Chem.Conformer(out_mol.GetNumAtoms())
             for atom_idx, (x, y, z) in enumerate(coords):
                 conf.SetAtomPosition(atom_idx, (x, y, z))
@@ -133,31 +145,33 @@ def xyz_to_sdf(xyz_file, output_sdf, smiles, prune=False, rmsd_thresh=1.0):
             out_mol.SetProp("CREST_Energy", f"{energy:.6f}")
             out_mol.SetProp("Conformer_ID", str(cid+1))
 
-            # Write to string buffer
-            sio = io.StringIO()
-            writer = Chem.SDWriter(sio)
-            writer.write(out_mol)
-            writer.close()
+            # Pass RDKit Mol directly to Meeko (preserves aromatic flags from SMILES)
+            try:
+                preparator.prepare(out_mol)
+                pdbqt_content = preparator.write_pdbqt_string()
 
-            # Add to zip
-            sdf_filename = f"{out_path.stem}_conf_{cid+1}.sdf"
-            zf.writestr(sdf_filename, sio.getvalue())
-            print(f"  ✓ Zipped {sdf_filename}: {energy:.4f} kcal/mol")
+                # Write PDBQT to zip
+                pdbqt_filename = f"{out_path.stem}_conf_{cid+1}.pdbqt"
+                zf.writestr(pdbqt_filename, pdbqt_content)
+                print(f"  ✓ Zipped {pdbqt_filename}: {energy:.4f} kcal/mol")
+
+            except Exception as e:
+                print(f"  ✗ Meeko failed for conformer {cid+1}: {e}")
 
     print(f"\n[*] Export complete: {out_path}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert CREST XYZ ensemble to SDF")
+    parser = argparse.ArgumentParser(description="Convert CREST XYZ ensemble to PDBQT zip archive via Meeko")
     parser.add_argument('-i', '--input', required=True, help='Input crest_conformers.xyz file')
-    parser.add_argument('-o', '--output', required=True, help='Output SDF file')
-    parser.add_argument('-s', '--smiles', required=True, help='SMILES string (defines connectivity)')
+    parser.add_argument('-o', '--output', required=True, help='Output zip file (will contain PDBQT files)')
+    parser.add_argument('-s', '--smiles', required=True, help='SMILES string (defines connectivity and aromaticity)')
     parser.add_argument('-p', '--prune', action='store_true', help='Enable Butina clustering to prune redundant conformers')
-    parser.add_argument('-r', '--rmsd', type=float, default=1.0, help='RMSD threshold for pruning')
+    parser.add_argument('-r', '--rmsd', type=float, default=1.0, help='RMSD threshold for pruning (default: 1.0 Å)')
 
     args = parser.parse_args()
 
-    xyz_to_sdf(args.input, args.output, args.smiles, args.prune, args.rmsd)
+    xyz_to_pdbqt(args.input, args.output, args.smiles, args.prune, args.rmsd)
 
 
 if __name__ == "__main__":

@@ -70,7 +70,7 @@ class TaskWorker:
             ligand_path = Path(f"/kaggle/working/ligands/{job_data['ligand']}")
 
             # Build output filename
-            out_name = f"{job_data['receptor'].replace('.pdbqt', '')}_{job_data['ligand'].replace('.sdf', '')}_out.sdf"
+            out_name = f"{job_data['receptor'].replace('.pdbqt', '')}_{job_data['ligand'].replace('.pdbqt', '')}_out.sdf"
             output_path = Path(f"/kaggle/working/outputs/{out_name}")
 
             # Build box parameters

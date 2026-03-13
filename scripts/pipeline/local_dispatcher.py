@@ -44,20 +44,20 @@ def discover_local_files(receptor_dir: Path, ligand_dir: Path):
     """Discover prepped receptors and ligands ready for docking."""
     receptors = [f.name for f in receptor_dir.glob("*_apo.pdbqt")] if receptor_dir.exists() else []
     ligands = []
-    
+
     if ligand_dir.exists():
-        # Add standard SDFs
-        ligands.extend([f.name for f in ligand_dir.glob("*.sdf")])
-        
-        # Peek inside Zip files for SDFs
+        # Add PDBQT ligands (primary format for GNINA)
+        ligands.extend([f.name for f in ligand_dir.glob("*.pdbqt")])
+
+        # Peek inside Zip files for PDBQT files
         for z_path in ligand_dir.glob("*.zip"):
             try:
                 with zipfile.ZipFile(z_path, 'r') as zf:
-                    z_ligands = [name for name in zf.namelist() if name.endswith('.sdf')]
+                    z_ligands = [name for name in zf.namelist() if name.endswith('.pdbqt')]
                     ligands.extend(z_ligands)
             except zipfile.BadZipFile:
                 print(f"[-] WARNING: Corrupt zip file {z_path}")
-                
+
     return receptors, ligands
 
 def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path, creds_path: str, gnina_profile: str = "thorough", task_type: str = "gnina_docking", max_workers: int = 2):
@@ -76,7 +76,7 @@ def build_job_queue(box_config_path: Path, receptor_dir: Path, ligand_dir: Path,
         default_box = {}
 
     for rec, lig in itertools.product(receptors, ligands):
-        out_name = f"{rec.replace('.pdbqt', '')}_{lig.replace('.sdf', '')}_out.sdf"
+        out_name = f"{rec.replace('.pdbqt', '')}_{lig.replace('.pdbqt', '')}_out.sdf"
 
         if out_name in completed:
             continue

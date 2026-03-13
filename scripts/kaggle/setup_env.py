@@ -163,7 +163,7 @@ def verify_environment():
 
 
 def extract_ligand_zips(data_dir="/kaggle/working/ligands"):
-    """Extract all zip files in the ligand directory."""
+    """Extract PDBQT files from zip archives in the ligand directory."""
     import zipfile
     import os
     from pathlib import Path
@@ -171,13 +171,16 @@ def extract_ligand_zips(data_dir="/kaggle/working/ligands"):
     p = Path(data_dir)
     if not p.exists():
         return
-        
+
     print("\n=== Extracting Ligand Ensembles ===")
     for z_path in p.glob("*.zip"):
         try:
             with zipfile.ZipFile(z_path, 'r') as zf:
-                zf.extractall(p)
-            print(f"  ✓ Extracted {z_path.name}")
+                # Only extract PDBQT files
+                pdbqt_files = [name for name in zf.namelist() if name.endswith('.pdbqt')]
+                for pdbqt_name in pdbqt_files:
+                    zf.extract(pdbqt_name, p)
+                print(f"  ✓ Extracted {len(pdbqt_files)} PDBQT files from {z_path.name}")
         except Exception as e:
             print(f"  ✗ Failed to extract {z_path.name}: {e}")
 
