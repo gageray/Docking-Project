@@ -1,0 +1,11 @@
+conformer_idx,rmsd_aligned,pass_threshold
+7,0.9149,True
+9,0.9512,True
+8,1.0288,True
+1,1.1059,True
+6,1.1186,True
+2,1.2023,True
+5,1.2771,True
+0,1.3740,True
+4,1.3890,True
+3,1.4000,True

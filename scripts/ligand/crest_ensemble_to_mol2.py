@@ -17,7 +17,7 @@ from rdkit.Chem import rdMolAlign
 from rdkit.ML.Cluster import Butina
 
 try:
-    from meeko import MoleculePreparation
+    from meeko import MoleculePreparation, PDBQTWriterLegacy
     MEEKO_AVAILABLE = True
 except ImportError:
     MEEKO_AVAILABLE = False
@@ -125,9 +125,10 @@ def xyz_to_pdbqt(xyz_file, output_zip, smiles, prune=False, rmsd_thresh=1.0):
     if out_path.suffix != '.zip':
         out_path = out_path.with_suffix('.zip')
 
-    # Initialize Meeko preparator
+    # Initialize Meeko preparator and writer
     # Default Meeko will add rotatable bonds, but GNINA can handle QM conformers
     preparator = MoleculePreparation()
+    writer = PDBQTWriterLegacy()
 
     with zipfile.ZipFile(out_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         for cid in keep_ids:
@@ -147,8 +148,12 @@ def xyz_to_pdbqt(xyz_file, output_zip, smiles, prune=False, rmsd_thresh=1.0):
 
             # Pass RDKit Mol directly to Meeko (preserves aromatic flags from SMILES)
             try:
-                preparator.prepare(out_mol)
-                pdbqt_content = preparator.write_pdbqt_string()
+                molecule_setups = preparator.prepare(out_mol)
+                pdbqt_content, is_ok, error_msg = PDBQTWriterLegacy.write_string(molecule_setups[0])
+
+                if not is_ok:
+                    print(f"  ✗ Writer failed for conformer {cid+1}: {error_msg}")
+                    continue
 
                 # Write PDBQT to zip
                 pdbqt_filename = f"{out_path.stem}_conf_{cid+1}.pdbqt"

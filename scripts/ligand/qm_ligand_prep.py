@@ -137,11 +137,16 @@ def run_crest_job(name: str, mol: Chem.Mol, workdir: Path, outdir: Path, threads
 
         # Use Meeko Python API to convert directly to PDBQT (preserves aromatic atom types)
         try:
-            from meeko import MoleculePreparation
+            from meeko import MoleculePreparation, PDBQTWriterLegacy
             out_pdbqt = outdir / f"{name}_qm.pdbqt"
-            preparator = MoleculePreparation(flexibility_builder=None)  # Rigid body
-            preparator.prepare(mol)
-            pdbqt_content = preparator.write_pdbqt_string()
+            preparator = MoleculePreparation()
+            molecule_setups = preparator.prepare(mol)
+            pdbqt_content, is_ok, error_msg = PDBQTWriterLegacy.write_string(molecule_setups[0])
+
+            if not is_ok:
+                print(f"[{name}] ERROR: Meeko writer failed: {error_msg}")
+                sys.exit(1)
+
             with open(out_pdbqt, 'w') as f:
                 f.write(pdbqt_content)
             print(f"[{name}] Successfully exported QM-optimized ligand to {out_pdbqt}")

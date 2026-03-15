@@ -7,29 +7,31 @@ Tests if the starting conformer was close to the crystal pose.
 
 import sys
 import json
+import zipfile
 from pathlib import Path
 from typing import List, Dict, Optional
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolAlign
-from Bio.PDB import PDBParser
 
 
 class ConformerComparator:
     """Compares input conformers to reference crystal structure with alignment."""
 
-    def __init__(self, receptor_pdb: Path, metadata_path: Path, input_sdf: Path):
+    def __init__(self, receptor_pdb: Path, metadata_path: Path, input_file: Path, smiles: str):
         """
         Initialize comparator.
 
         Args:
             receptor_pdb: Path to aligned receptor PDB with reference ligand
             metadata_path: Path to receptor metadata JSON
-            input_sdf: Path to input ligand SDF file
+            input_file: Path to input ligand PDBQT zip file
+            smiles: SMILES string for the ligand (to build template)
         """
         self.receptor_pdb = Path(receptor_pdb)
         self.metadata_path = Path(metadata_path)
-        self.input_sdf = Path(input_sdf)
+        self.input_file = Path(input_file)
+        self.smiles = smiles
 
         # Load metadata
         with open(self.metadata_path) as f:
@@ -49,79 +51,90 @@ class ConformerComparator:
         print(f"Loaded {len(self.input_mols)} input conformer(s)")
 
     def _extract_reference_ligand(self) -> Chem.Mol:
-        """Extract reference ligand from receptor PDB and convert to RDKit mol."""
+        """Extract reference ligand from receptor PDB and map to SMILES topology."""
         print(f"Extracting reference ligand from {self.receptor_pdb}")
 
-        parser = PDBParser(QUIET=True)
-        structure = parser.get_structure('receptor', str(self.receptor_pdb))
+        # 1. Extract just the PDB lines for the reference ligand
+        pdb_lines = []
+        with open(self.receptor_pdb) as f:
+            for line in f:
+                if line.startswith(('ATOM', 'HETATM')):
+                    resn = line[17:20].strip()
+                    chain = line[21]
+                    if resn == self.ref_ligand_resn and chain == self.ref_ligand_chain:
+                        pdb_lines.append(line)
 
-        # Find the ligand residue
-        ligand_residue = None
-        for model in structure:
-            for chain in model:
-                if chain.id == self.ref_ligand_chain:
-                    for residue in chain:
-                        if residue.resname == self.ref_ligand_resn:
-                            ligand_residue = residue
-                            break
-                if ligand_residue:
-                    break
-            if ligand_residue:
-                break
-
-        if not ligand_residue:
+        if not pdb_lines:
             raise ValueError(f"Could not find ligand {self.ref_ligand_resn} in chain {self.ref_ligand_chain}")
 
-        # Extract heavy atoms and coordinates
-        atoms = []
-        coords = []
-        for atom in ligand_residue:
-            # Skip hydrogens
-            if atom.element.strip() != 'H':
-                atoms.append({
-                    'element': atom.element.strip(),
-                    'name': atom.name,
-                    'coord': atom.coord
-                })
-                coords.append(atom.coord)
+        pdb_block = "".join(pdb_lines)
 
-        print(f"Extracted {len(atoms)} heavy atoms from reference ligand")
+        # 2. Load the PDB block as a raw molecule (contains true 3D coords, but random atom order)
+        ref_raw = Chem.MolFromPDBBlock(pdb_block, sanitize=False, removeHs=True)
+        if ref_raw is None:
+            raise ValueError("RDKit failed to parse the extracted PDB block.")
 
-        # Store coords for later
-        self.ref_coords = np.array(coords)
-        self.ref_atoms = atoms
+        print(f"Extracted {ref_raw.GetNumAtoms()} heavy atoms from reference ligand")
 
-        # Load first input mol to use as template
-        supplier = Chem.SDMolSupplier(str(self.input_sdf), removeHs=True, sanitize=True)
-        template_mol = next(iter(supplier))
-
+        # 3. Build the perfect template graph from SMILES
+        template_mol = Chem.MolFromSmiles(self.smiles)
         if template_mol is None:
-            raise ValueError("Could not load input ligand as template")
+            raise ValueError(f"Invalid SMILES: {self.smiles}")
 
-        if template_mol.GetNumAtoms() != len(coords):
-            raise ValueError(f"Atom count mismatch: input={template_mol.GetNumAtoms()}, ref={len(coords)}")
-
-        # Create reference mol with crystal coords
-        ref_mol = Chem.Mol(template_mol)
-        conf = ref_mol.GetConformer()
-        for i in range(len(coords)):
-            x, y, z = float(coords[i][0]), float(coords[i][1]), float(coords[i][2])
-            conf.SetAtomPosition(i, (x, y, z))
+        # 4. The Magic Step: RDKit maps the SMILES graph onto the PDB coordinates!
+        # This fixes the scrambled indices and guarantees isomorphic alignment.
+        try:
+            ref_mol = AllChem.AssignBondOrdersFromTemplate(template_mol, ref_raw)
+        except Exception as e:
+            raise ValueError(f"Could not map SMILES graph to PDB coordinates: {e}")
 
         return ref_mol
 
     def _load_input_conformers(self) -> List[Chem.Mol]:
-        """Load input conformer(s) from SDF file."""
-        print(f"Loading input conformers from {self.input_sdf}")
+        """Load input conformer(s) from PDBQT zip file."""
+        print(f"Loading input conformers from {self.input_file}")
 
+        # Build template from SMILES to get proper connectivity
+        template = Chem.MolFromSmiles(self.smiles)
+        if template is None:
+            raise ValueError(f"Invalid SMILES: {self.smiles}")
+
+        num_heavy = template.GetNumAtoms()
         mols = []
-        supplier = Chem.SDMolSupplier(str(self.input_sdf), removeHs=True, sanitize=True)
 
-        for idx, mol in enumerate(supplier):
-            if mol is None:
-                print(f"WARNING: Could not parse conformer {idx}")
-                continue
-            mols.append(mol)
+        with zipfile.ZipFile(self.input_file, 'r') as zf:
+            pdbqt_files = [f for f in zf.namelist() if f.endswith('.pdbqt')]
+            print(f"Found {len(pdbqt_files)} PDBQT files in zip")
+
+            for pdbqt_name in sorted(pdbqt_files):
+                pdbqt_content = zf.read(pdbqt_name).decode('utf-8')
+
+                # 1. Strip AutoDock columns (67+) so RDKit can read it as standard PDB
+                clean_pdb = []
+                for line in pdbqt_content.splitlines():
+                    if line.startswith(('ATOM', 'HETATM')):
+                        clean_pdb.append(line[:66])
+                    else:
+                        clean_pdb.append(line)
+
+                pdb_string = "\n".join(clean_pdb)
+
+                # 2. Load the raw coordinates (with Meeko's scrambled atom order)
+                raw_mol = Chem.MolFromPDBBlock(pdb_string, removeHs=True, sanitize=False)
+                if raw_mol is None:
+                    print(f"WARNING: RDKit failed to parse {pdbqt_name}")
+                    continue
+
+                if raw_mol.GetNumAtoms() != num_heavy:
+                    print(f"WARNING: Atom count mismatch in {pdbqt_name}: {raw_mol.GetNumAtoms()} vs {num_heavy}")
+                    continue
+
+                # 3. Snap the perfect SMILES graph onto the Meeko coordinates
+                try:
+                    aligned_mol = AllChem.AssignBondOrdersFromTemplate(template, raw_mol)
+                    mols.append(aligned_mol)
+                except Exception as e:
+                    print(f"WARNING: Failed to map SMILES to {pdbqt_name}: {e}")
 
         return mols
 
@@ -171,7 +184,8 @@ class ConformerComparator:
             json.dump({
                 'receptor': str(self.receptor_pdb),
                 'reference_ligand': f"{self.ref_ligand_resn}:{self.ref_ligand_chain}",
-                'input_sdf': str(self.input_sdf),
+                'input_file': str(self.input_file),
+                'smiles': self.smiles,
                 'total_conformers': len(results),
                 'passing_conformers': sum(1 for r in results if r['pass_threshold']),
                 'best_rmsd': results[0]['rmsd_aligned'] if results else None,
@@ -213,7 +227,8 @@ def main():
     parser = argparse.ArgumentParser(description="Compare input ligand conformer to reference crystal structure")
     parser.add_argument('--receptor', required=True, help='Receptor PDB with reference ligand')
     parser.add_argument('--metadata', required=True, help='Receptor metadata JSON')
-    parser.add_argument('--input', required=True, help='Input ligand SDF file')
+    parser.add_argument('--input', required=True, help='Input ligand PDBQT zip file')
+    parser.add_argument('--smiles', required=True, help='SMILES string for ligand')
     parser.add_argument('--output', required=True, help='Output report path (without extension)')
 
     args = parser.parse_args()
@@ -222,7 +237,8 @@ def main():
         comparator = ConformerComparator(
             receptor_pdb=args.receptor,
             metadata_path=args.metadata,
-            input_sdf=args.input
+            input_file=args.input,
+            smiles=args.smiles
         )
 
         results = comparator.compare_conformers()

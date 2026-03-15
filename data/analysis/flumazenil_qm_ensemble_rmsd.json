@@ -1,0 +1,61 @@
+{
+  "receptor": "data/receptors/6X3U_aligned.pdb",
+  "reference_ligand": "FYP:Z",
+  "input_file": "data/ligands/flumazenil_qm_ensemble_pdbqt.zip",
+  "smiles": "CCOC(=O)c1ncn2c1CN(C)C(=O)c1cc(F)ccc1-2",
+  "total_conformers": 10,
+  "passing_conformers": 10,
+  "best_rmsd": 0.9149251109569421,
+  "results": [
+    {
+      "conformer_idx": 7,
+      "rmsd_aligned": 0.9149251109569421,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 9,
+      "rmsd_aligned": 0.9511693348613427,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 8,
+      "rmsd_aligned": 1.028848745129056,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 1,
+      "rmsd_aligned": 1.1058787482651216,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 6,
+      "rmsd_aligned": 1.1186211880932084,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 2,
+      "rmsd_aligned": 1.2023281723827408,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 5,
+      "rmsd_aligned": 1.2770930271621972,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 0,
+      "rmsd_aligned": 1.3740358872299008,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 4,
+      "rmsd_aligned": 1.389048781851953,
+      "pass_threshold": true
+    },
+    {
+      "conformer_idx": 3,
+      "rmsd_aligned": 1.3999732129765943,
+      "pass_threshold": true
+    }
+  ]
+}
